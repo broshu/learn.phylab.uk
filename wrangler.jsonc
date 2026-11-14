@@ -1,0 +1,22 @@
+{
+  // learn.phylab.uk — one Cloudflare Worker serves the pages (public/) and the API (src/worker.js)
+  "name": "learn-phylab-uk",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  "routes": [
+    { "pattern": "learn.phylab.uk", "custom_domain": true }
+  ],
+  "observability": { "enabled": true }
+  // Added later, when each part is built:
+  //   "d1_databases"     – students, classes, submissions, event logs (teacher view reads these)
+  //   "r2_buckets"       – drawings and other uploaded files
+  //   "durable_objects"  – live in-class room: real-time accuracy, peer pairing, VR group counts
+  //   secrets (wrangler secret put): DEEPSEEK_API_KEY_CHECK, DEEPSEEK_API_KEY_TUTOR
+}
