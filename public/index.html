@@ -3,20 +3,118 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>learn.phylab.uk</title>
+<title>The Electric Field of Point Charges · learn.phylab.uk</title>
+<meta name="description" content="A sample physics lesson followed through before class, in class and after class.">
+<link rel="stylesheet" href="/assets/site.css">
 <style>
-  :root { color-scheme: light dark; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center;
-         font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
-  main { text-align: center; padding: 2rem; }
-  h1 { font-size: 2rem; margin: 0 0 .5rem; }
-  p { opacity: .7; margin: 0; }
+  .hero { padding: 54px 0 30px; }
+  .hero h1 { max-width: 16ch; }
+  .hero .lead { font-size: 1.15rem; color: var(--ink-soft); max-width: 56ch; margin-top: 14px; }
+
+  .cycle { display: grid; grid-template-columns: repeat(3, 1fr); gap: 34px; position: relative; margin-top: 18px; }
+  .stage { position: relative; display: flex; flex-direction: column; }
+  .stage .num { font-family: var(--serif); font-size: 2.4rem; line-height: 1; color: var(--rule); }
+  .stage h2 { margin: 6px 0 8px; }
+  .stage p { font-size: 0.97rem; color: var(--ink-soft); flex: 1; }
+  .stage .meta { font-size: 0.82rem; color: var(--ink-soft); margin-bottom: 12px; }
+  .stage.live { border-color: var(--accent); box-shadow: 0 1px 0 var(--accent); }
+  .stage.live .num { color: var(--accent); }
+  .stage:not(:last-child)::after {
+    content: ""; position: absolute; right: -27px; top: 50%; width: 18px; height: 18px;
+    border-top: 2px solid var(--ink-soft); border-right: 2px solid var(--ink-soft); transform: translateY(-50%) rotate(45deg);
+  }
+  .soon { display: inline-block; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft); border: 1px dashed var(--rule); border-radius: 6px; padding: 6px 10px; align-self: flex-start; }
+
+  .loop { display: flex; align-items: center; gap: 14px; margin: 22px 0 0; color: var(--ink-soft); font-size: 0.93rem; }
+  .loop svg { flex: none; }
+  .next { border-style: dashed; background: transparent; margin-top: 12px; display: flex; gap: 16px; align-items: center; }
+  .next .lock { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--rule); display: grid; place-items: center; }
+
+  .also { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 34px; }
+  .also .card { display: flex; flex-direction: column; gap: 8px; }
+  .also p { color: var(--ink-soft); font-size: 0.95rem; margin: 0; flex: 1; }
+
+  @media (max-width: 760px) {
+    .cycle { grid-template-columns: 1fr; gap: 30px; }
+    .stage:not(:last-child)::after { right: 50%; top: auto; bottom: -22px; transform: translateX(50%) rotate(135deg); }
+    .also { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>learn.phylab.uk</h1>
-  <p>Before class · In class · After class — under construction.</p>
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="/">learn<span>.phylab.uk</span></a>
+  <span class="where">Sample lesson</span>
+</div></header>
+
+<main class="wrap">
+  <section class="hero">
+    <span class="tag">Electricity · one lesson, one full cycle</span>
+    <h1>The Electric Field of Point Charges</h1>
+    <p class="lead">Superposition, dipoles and electric field lines. Prepare before class, work on it together in class, then use it on your own afterwards.</p>
+  </section>
+
+  <section class="cycle" aria-label="The three parts of the lesson">
+    <article class="card stage live">
+      <span class="num">1</span>
+      <h2>Before class</h2>
+      <p>Check what you already know, read a short module, explore a simulation, and make a prediction to bring to class.</p>
+      <span class="meta">About 15 minutes</span>
+      <a class="btn" href="/before/" id="start">Start</a>
+    </article>
+    <article class="card stage">
+      <span class="num">2</span>
+      <h2>In class</h2>
+      <p>Draw field lines, trade hints with classmates, and look at the field in three dimensions.</p>
+      <span class="meta">Part of one class session</span>
+      <span class="soon">Coming soon</span>
+    </article>
+    <article class="card stage">
+      <span class="num">3</span>
+      <h2>After class</h2>
+      <p>Put the physics to work in a new setting, first with help and then on your own.</p>
+      <span class="meta">20 to 30 minutes</span>
+      <span class="soon">Coming soon</span>
+    </article>
+  </section>
+
+  <div class="loop">
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M27 12a11 11 0 1 0 1 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M28 5v8h-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>What you can do unaided at the end of part 3 becomes the starting point of the next lesson.</span>
+  </div>
+  <div class="card next">
+    <span class="lock"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="8" width="12" height="8" rx="2" fill="#55607a"/><path d="M5.5 8V5.5a3.5 3.5 0 0 1 7 0V8" fill="none" stroke="#55607a" stroke-width="2"/></svg></span>
+    <div>
+      <h3>Next lesson</h3>
+      <span class="muted small">Opens after this one. Its first check is built from your unaided work after class.</span>
+    </div>
+  </div>
+
+  <section class="also">
+    <div class="card">
+      <h3>Teacher view</h3>
+      <p>For the lecturer: how the whole class is doing at each stage, without marking every answer.</p>
+      <span class="soon">Coming soon</span>
+    </div>
+    <div class="card">
+      <h3>About this demo</h3>
+      <p>What the lesson is based on, why each page exists, and what data it records.</p>
+      <span class="soon">Coming soon</span>
+    </div>
+  </section>
+
+  <footer class="site">
+    <p>Content follows Section 23.2 of R. D. Knight, <em>Physics for Scientists and Engineers: A Strategic Approach with Modern Physics</em> (5th ed.). The questions and figures on this site are written for it and are not taken from the book.</p>
+    <p>A demonstration site by Xingyu Shu · <a href="https://phylab.uk">phylab.uk</a>. Your work is saved only in this browser.</p>
+  </footer>
 </main>
+
+<script type="module">
+  import { openRecord } from "/assets/record.js";
+  const rec = openRecord("before");
+  const start = document.getElementById("start");
+  if (rec.raw.finishedAt) start.textContent = "Review";
+  else if (rec.raw.events.length) start.textContent = "Continue";
+</script>
 </body>
 </html>

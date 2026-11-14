@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Before class · The Electric Field of Point Charges · learn.phylab.uk</title>
+<link rel="stylesheet" href="/assets/site.css">
+<style>
+  .steps { position: sticky; top: 0; z-index: 5; background: var(--paper); border-bottom: 1px solid var(--rule); }
+  .steps ol { list-style: none; margin: 0; padding: 10px 0; display: flex; gap: 6px; }
+  .steps li { flex: 1; font-size: 0.82rem; font-weight: 600; color: var(--ink-soft); padding-top: 8px; border-top: 4px solid var(--rule); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .steps li.done { border-color: var(--accent); color: var(--accent); }
+  .steps li.now { border-color: var(--ink); color: var(--ink); }
+  .steps li b { font-weight: 600; opacity: 0.6; margin-right: 4px; }
+
+  section.step { display: none; padding: 34px 0 10px; }
+  section.step.on { display: block; }
+  .step > h1 { font-size: clamp(1.6rem, 4vw, 2.1rem); }
+  .step > .intro { color: var(--ink-soft); max-width: 62ch; margin: 10px 0 24px; }
+  .nav { display: flex; justify-content: space-between; gap: 12px; margin: 28px 0 0; }
+
+  /* check-in */
+  .q { margin-bottom: 18px; }
+  .q .stem { display: flex; gap: 18px; align-items: flex-start; }
+  .q .stem p { flex: 1; margin: 0 0 12px; }
+  .q svg.fig { flex: none; width: 170px; height: 100px; }
+  .q .n { font-family: var(--serif); color: var(--ink-soft); margin-right: 6px; }
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .choice { text-align: left; font: inherit; background: #fff; border: 1.5px solid var(--rule); border-radius: 8px; padding: 9px 12px; cursor: pointer; color: var(--ink); }
+  .choice:hover { border-color: var(--ink-soft); }
+  .choice.sel { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .choice:disabled { cursor: default; opacity: 0.85; }
+  .choice.right { border-color: var(--accent); background: var(--accent-soft); }
+  .choice.wrong { border-color: var(--pos); background: #fbeceb; }
+  .score { font-family: var(--serif); font-size: 1.3rem; margin: 0 0 6px; }
+  .review { margin-top: 14px; border-left: 4px solid var(--warn); }
+  .review h3 { margin-bottom: 6px; }
+
+  /* module */
+  .part { margin-bottom: 22px; }
+  .part h2 { margin-bottom: 10px; }
+  .part .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+  .part figcaption, .cap { font-size: 0.88rem; color: var(--ink-soft); margin-top: 6px; }
+  figure { margin: 14px 0 0; }
+  ol.rules { padding-left: 1.3em; margin: 0; }
+  ol.rules li { margin-bottom: 6px; }
+  .legend i { display: inline-block; width: 22px; height: 3px; vertical-align: middle; margin-right: 5px; border-radius: 2px; }
+
+  /* explore */
+  .tasks { display: grid; gap: 12px; margin-top: 16px; }
+  .task { display: grid; grid-template-columns: 30px 1fr; gap: 10px; }
+  .task .mark { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--rule); display: grid; place-items: center; font-size: 0.85rem; font-weight: 700; color: transparent; }
+  .task.done .mark { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .task p { margin: 0 0 8px; }
+  .task .choices { grid-template-columns: repeat(3, 1fr); }
+  .fb { font-size: 0.93rem; margin-top: 8px; }
+
+  /* predict */
+  .pad { position: relative; aspect-ratio: 5 / 3; background: linear-gradient(#eaf4f6, #d7e9ec); border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; }
+  .pad svg, .pad canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .pad canvas { touch-action: none; cursor: crosshair; }
+  textarea { width: 100%; min-height: 96px; font: inherit; padding: 10px 12px; border: 1.5px solid var(--rule); border-radius: 8px; resize: vertical; background: #fff; color: var(--ink); }
+  label.field { display: block; font-weight: 600; margin: 18px 0 6px; }
+
+  table.rec { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  table.rec th, table.rec td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  table.rec th { width: 34%; font-weight: 600; }
+  details summary { cursor: pointer; font-weight: 600; }
+
+  @media (max-width: 640px) {
+    .choices, .task .choices, .part .cols { grid-template-columns: 1fr; }
+    .q .stem { flex-direction: column; }
+    .steps li span { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="/">learn<span>.phylab.uk</span></a>
+  <span class="where">Before class · The Electric Field of Point Charges</span>
+</div></header>
+
+<nav class="steps" aria-label="Progress"><div class="wrap"><ol id="stepper">
+  <li><b>1</b><span>Check-in</span></li>
+  <li><b>2</b><span>Read</span></li>
+  <li><b>3</b><span>Explore</span></li>
+  <li><b>4</b><span>Predict</span></li>
+  <li><b>5</b><span>Ask</span></li>
+</ol></div></nav>
+
+<main class="wrap">
+
+<!-- 1 · CHECK-IN -->
+<section class="step" id="s-check">
+  <h1>Check-in</h1>
+  <p class="intro">Four quick questions on what this lesson builds on. They do not count toward any grade. If something has slipped, you get a short refresher before moving on.</p>
+  <div id="questions"></div>
+  <div id="checkResult"></div>
+  <div class="nav">
+    <a class="btn ghost" href="/">Home</a>
+    <button class="btn" id="checkSubmit" disabled>Submit answers</button>
+  </div>
+</section>
+
+<!-- 2 · READ -->
+<section class="step" id="s-read">
+  <h1>The electric field of point charges</h1>
+  <p class="intro">Three ideas, each with something to try. This is the whole of the reading for this lesson.</p>
+
+  <article class="card part">
+    <span class="tag">Idea 1</span>
+    <h2>Fields add</h2>
+    <p>When several charges are present, each one produces its own field exactly as if the others were not there. The net field at any point is the vector sum of the individual fields:</p>
+    <math display="block"><msub><mover><mi>E</mi><mo>&#x2192;</mo></mover><mtext>net</mtext></msub><mo>=</mo><msub><mover><mi>E</mi><mo>&#x2192;</mo></mover><mn>1</mn></msub><mo>+</mo><msub><mover><mi>E</mi><mo>&#x2192;</mo></mover><mn>2</mn></msub><mo>+</mo><msub><mover><mi>E</mi><mo>&#x2192;</mo></mover><mn>3</mn></msub><mo>+</mo><mo>&#x22EF;</mo></math>
+    <p>So to find the field at a point: work out the field of each charge there, direction and size, then add them as vectors.</p>
+    <figure>
+      <div class="fieldbox"><canvas id="cvAdd"></canvas></div>
+      <figcaption class="legend">Drag the yellow sensor. <i style="background:var(--pos)"></i>field of the positive charge <i style="background:var(--neg);margin-left:10px"></i>field of the negative charge <i style="background:var(--ink);margin-left:10px;height:4px"></i>their sum</figcaption>
+      <div class="readout" id="roAdd"></div>
+    </figure>
+  </article>
+
+  <article class="card part">
+    <span class="tag">Idea 2</span>
+    <h2>The electric dipole</h2>
+    <p>Two equal and opposite charges, <math><mo>+</mo><mi>q</mi></math> and <math><mo>&#x2212;</mo><mi>q</mi></math>, a small distance <math><mi>s</mi></math> apart, form an <strong>electric dipole</strong>. Dipoles are everywhere: a water molecule is one, because its electrons sit slightly closer to the oxygen atom than to the hydrogen atoms.</p>
+    <p>A dipole is described by its <strong>dipole moment</strong> <math><mover><mi>p</mi><mo>&#x2192;</mo></mover></math>: a vector of magnitude <math><mi>p</mi><mo>=</mo><mi>q</mi><mi>s</mi></math> that points from the negative charge to the positive charge.</p>
+    <p>Far from the dipole, at a distance <math><mi>r</mi></math> much larger than <math><mi>s</mi></math>, the field is</p>
+    <math display="block">
+      <mtable columnalign="right left left" columnspacing="0.4em 1.6em" rowspacing="0.9em">
+        <mtr>
+          <mtd><msub><mover><mi>E</mi><mo>&#x2192;</mo></mover><mtext>axis</mtext></msub></mtd>
+          <mtd><mstyle displaystyle="true"><mo>&#x2248;</mo><mfrac><mn>1</mn><mrow><mn>4</mn><mi>&#x3C0;</mi><msub><mi>&#x3B5;</mi><mn>0</mn></msub></mrow></mfrac><mfrac><mrow><mn>2</mn><mover><mi>p</mi><mo>&#x2192;</mo></mover></mrow><msup><mi>r</mi><mn>3</mn></msup></mfrac></mstyle></mtd>
+          <mtd><mtext>on the line through the two charges</mtext></mtd>
+        </mtr>
+        <mtr>
+          <mtd><msub><mover><mi>E</mi><mo>&#x2192;</mo></mover><mtext>plane</mtext></msub></mtd>
+          <mtd><mstyle displaystyle="true"><mo>&#x2248;</mo><mo>&#x2212;</mo><mfrac><mn>1</mn><mrow><mn>4</mn><mi>&#x3C0;</mi><msub><mi>&#x3B5;</mi><mn>0</mn></msub></mrow></mfrac><mfrac><mover><mi>p</mi><mo>&#x2192;</mo></mover><msup><mi>r</mi><mn>3</mn></msup></mfrac></mstyle></mtd>
+          <mtd><mtext>in the plane that bisects the dipole</mtext></mtd>
+        </mtr>
+      </mtable>
+    </math>
+    <p>Two things to notice. At the same distance, the field on the axis is twice as strong as the field in the bisecting plane, and the two point in opposite directions. And both fall off as <math><mn>1</mn><mo>/</mo><msup><mi>r</mi><mn>3</mn></msup></math>, faster than the <math><mn>1</mn><mo>/</mo><msup><mi>r</mi><mn>2</mn></msup></math> of a single point charge, because from far away the two opposite charges nearly cancel.</p>
+    <figure>
+      <div class="fieldbox"><canvas id="cvDip"></canvas></div>
+      <figcaption>The field of a dipole, shown as field vectors. Drag the sensor to compare the axis with the bisecting plane.</figcaption>
+      <div class="readout" id="roDip"></div>
+    </figure>
+  </article>
+
+  <article class="card part">
+    <span class="tag">Idea 3</span>
+    <h2>Electric field lines</h2>
+    <p>Drawing an arrow at every point soon gets crowded. Field lines are a second way to picture the same field. They follow four rules:</p>
+    <ol class="rules">
+      <li>A field line is a continuous curve. At every point on it, the electric field vector is tangent to the line.</li>
+      <li>Where the lines are closer together, the field is stronger. Where they are farther apart, it is weaker.</li>
+      <li>Field lines start on positive charges and end on negative charges.</li>
+      <li>Field lines never cross.</li>
+    </ol>
+    <div class="cols">
+      <figure><div class="fieldbox"><canvas id="cvLine1"></canvas></div><figcaption>A positive point charge</figcaption></figure>
+      <figure><div class="fieldbox"><canvas id="cvLine2"></canvas></div><figcaption>A dipole</figcaption></figure>
+    </div>
+    <div class="toolbar"><label class="toggle"><input type="checkbox" id="bothToggle"> Show the field vectors as well</label></div>
+    <p class="cap">With both on, check rule 1: every arrow lies along the line that passes through it.</p>
+  </article>
+
+  <div class="nav">
+    <button class="btn ghost" data-back>Back</button>
+    <button class="btn" data-next>Continue</button>
+  </div>
+</section>
+
+<!-- 3 · EXPLORE -->
+<section class="step" id="s-explore">
+  <h1>Explore</h1>
+  <p class="intro">Place charges, switch between the two pictures of the field, and use the sensor to read the field at any point. Then do the three tasks below.</p>
+
+  <div class="toolbar">
+    <button class="btn small pos" id="addPos">+ Add positive</button>
+    <button class="btn small neg" id="addNeg">&#x2212; Add negative</button>
+    <button class="btn small ghost" id="removeSel">Remove selected</button>
+    <button class="btn small ghost" id="clearAll">Clear</button>
+    <label class="toggle"><input type="checkbox" id="tVec"> Field vectors</label>
+    <label class="toggle"><input type="checkbox" id="tLine"> Field lines</label>
+  </div>
+  <div class="fieldbox"><canvas id="cvSim"></canvas></div>
+  <div class="readout" id="roSim">Add a charge to begin. Each charge is 1 nC. Drag charges and the yellow sensor.</div>
+
+  <div class="tasks">
+    <div class="card task" id="task1">
+      <span class="mark">&#x2713;</span>
+      <div><p><strong>Build a dipole.</strong> Put one positive and one negative charge on the board, a few centimetres apart.</p></div>
+    </div>
+    <div class="card task" id="task2">
+      <span class="mark">&#x2713;</span>
+      <div>
+        <p><strong>Lines and strength.</strong> Turn on field lines. Move the sensor from a place where the lines are close together to a place where they are far apart, and watch the reading.</p>
+        <p>Where the lines are closer together, the field is</p>
+        <div class="choices" data-q="density">
+          <button class="choice" data-v="stronger">stronger</button>
+          <button class="choice" data-v="weaker">weaker</button>
+          <button class="choice" data-v="same">the same</button>
+        </div>
+        <div class="fb" id="fbDensity"></div>
+      </div>
+    </div>
+    <div class="card task" id="task3">
+      <span class="mark">&#x2713;</span>
+      <div>
+        <p><strong>Axis and side.</strong> Keep the dipole. The dashed circle keeps the sensor's distance from the centre of the dipole in view. Read the field on the line through both charges, then at the same distance out to the side.</p>
+        <p>At the same distance from the centre, the field is stronger</p>
+        <div class="choices" data-q="axis">
+          <button class="choice" data-v="axis">on the line through the charges</button>
+          <button class="choice" data-v="side">out to the side</button>
+          <button class="choice" data-v="equal">equal in both places</button>
+        </div>
+        <div class="fb" id="fbAxis"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="btn ghost" data-back>Back</button>
+    <button class="btn" data-next id="exploreNext" disabled>Continue</button>
+  </div>
+</section>
+
+<!-- 4 · PREDICT -->
+<section class="step" id="s-predict">
+  <h1>A prediction to bring to class</h1>
+  <p class="intro">A platypus hunts underwater with its eyes, ears and nostrils shut. It finds shrimp by sensing, with its bill, the weak electric field that a shrimp's muscles create in the water around it.</p>
+  <p><strong>What do the electric field lines around the shrimp look like?</strong> Draw them. Draw each line in the direction you think the field points; an arrowhead is added where you lift your finger.</p>
+  <div class="pad">
+    <svg viewBox="0 0 800 480" aria-hidden="true">
+      <g transform="translate(400 245)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <!-- antennae -->
+        <path d="M118 -22 C170 -70 220 -78 262 -60" stroke="#c2664a" stroke-width="2.5"/>
+        <path d="M118 -18 C176 -44 226 -34 250 -8" stroke="#c2664a" stroke-width="2.5"/>
+        <!-- legs -->
+        <path d="M70 22 l-10 34 M48 26 l-12 34 M26 28 l-12 32 M4 28 l-12 30 M-20 24 l-12 28 M-44 16 l-10 24" stroke="#c2664a" stroke-width="3"/>
+        <!-- tail fan -->
+        <path d="M-128 -4 l-36 -22 l6 30 l-12 26 l40 -12 z" fill="#e58c6c" stroke="#c2664a" stroke-width="2"/>
+        <!-- body segments -->
+        <path d="M118 -20 C96 -46 52 -52 10 -46 C-40 -40 -92 -30 -130 -6 C-104 6 -64 22 -20 28 C26 34 80 30 112 10 C124 2 126 -10 118 -20 Z" fill="#f2a585" stroke="#c2664a" stroke-width="2.5"/>
+        <path d="M58 -50 C50 -24 54 6 66 26 M22 -47 C14 -22 16 8 26 30 M-14 -43 C-22 -20 -20 8 -10 28 M-50 -37 C-58 -18 -56 4 -46 22 M-88 -27 C-96 -12 -94 2 -86 12" stroke="#c2664a" stroke-width="2"/>
+        <!-- rostrum and eye -->
+        <path d="M112 -30 l44 -12 l-38 22" fill="#f2a585" stroke="#c2664a" stroke-width="2"/>
+        <circle cx="98" cy="-22" r="6" fill="#1a2030" stroke="none"/>
+      </g>
+    </svg>
+    <canvas id="cvPad"></canvas>
+  </div>
+  <div class="toolbar">
+    <button class="btn small ghost" id="padUndo">Undo last line</button>
+    <button class="btn small ghost" id="padClear">Clear</button>
+    <span class="muted small" id="padCount">No lines yet</span>
+  </div>
+  <label class="field" for="why">Why do you think so? One or two sentences.</label>
+  <textarea id="why" placeholder="I drew it this way because…"></textarea>
+  <p class="note" style="margin-top:16px">There is no right or wrong here yet, and this will not be answered in class. You will find out for yourself after class.</p>
+  <div class="nav">
+    <button class="btn ghost" data-back>Back</button>
+    <button class="btn" data-next id="predictNext" disabled>Save prediction</button>
+  </div>
+</section>
+
+<!-- 5 · ASK -->
+<section class="step" id="s-ask">
+  <h1>One last thing</h1>
+  <p class="intro">Your answer here goes to your lecturer before class, together with everyone else's, so that class time is spent on what people actually found hard.</p>
+  <label class="field" for="unclear">What is still unclear to you, or what would you like explained in class?</label>
+  <textarea id="unclear" placeholder="For example: I do not see why the dipole field falls off faster than the field of one charge."></textarea>
+  <label class="toggle" style="margin-top:12px"><input type="checkbox" id="allClear"> Nothing is unclear so far</label>
+  <div class="nav">
+    <button class="btn ghost" data-back>Back</button>
+    <button class="btn" data-next id="askNext" disabled>Finish</button>
+  </div>
+</section>
+
+<!-- DONE -->
+<section class="step" id="s-done">
+  <h1>You are ready for class</h1>
+  <p class="intro">Bring your prediction about the shrimp with you. In class you will draw field lines yourself and compare them with your classmates'.</p>
+  <div class="card">
+    <details open>
+      <summary>What this page recorded</summary>
+      <p class="muted small" style="margin:8px 0 12px">This is a demonstration: the record below is kept in this browser only. In a real class the lecturer would see totals for the whole class, not one student's answers.</p>
+      <table class="rec" id="recTable"></table>
+    </details>
+  </div>
+  <div class="nav">
+    <button class="btn ghost" id="restart">Start again</button>
+    <a class="btn" href="/">Back to the lesson</a>
+  </div>
+</section>
+
+<footer class="site">
+  <p>Content follows Section 23.2 of R. D. Knight, <em>Physics for Scientists and Engineers: A Strategic Approach with Modern Physics</em> (5th ed.). The questions and figures on this site are written for it and are not taken from the book.</p>
+</footer>
+</main>
+
+<script type="module" src="/before/before.js"></script>
+</body>
+</html>
