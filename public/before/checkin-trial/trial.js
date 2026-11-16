@@ -146,56 +146,87 @@ function coulomb() {
   };
 }
 
-// ---------- 4 · forces in a field that varies from place to place ----------
+// ---------- 4 · forces on charged droplets under a thundercloud ----------
 function forceInField() {
-  // The field of two charges that sit outside the picture: the student sees only the field arrows.
-  let src, E, strong, weak;
-  const fieldAt = (x, y) => src.reduce((e, c) => { const dx = x - c.x, dy = y - c.y, d = Math.hypot(dx, dy); return [e[0] + (c.q * dx) / d ** 3, e[1] + (c.q * dy) / d ** 3]; }, [0, 0]);
+  // A thundercloud: negative charge along its base, positive charge near its top. The ground is a conductor,
+  // which is the same as adding mirror-image charges below it, so the field meets the ground at right angles.
+  const GROUND = 0.75, XS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], YS = [1.55, 2.4, 3.25, 4.1];
+  let src, cloud, strong, weak;
+  const E = (x, y) => src.reduce((e, c) => { const dx = x - c.x, dy = y - c.y, d = Math.hypot(dx, dy); return [e[0] + (c.q * dx) / d ** 3, e[1] + (c.q * dy) / d ** 3]; }, [0, 0]);
   for (;;) {
-    const flip = pick([1, -1]);
-    src = [{ x: -1.6, y: 0.5 + Math.random() * 6, q: flip * (1 + Math.random()) }, { x: 13.6, y: 0.5 + Math.random() * 6, q: -flip * (0.6 + Math.random()) }];
+    cloud = { x: 3.4 + Math.random() * 5.2, half: 1.3 + Math.random() * 0.7, base: 5.55, top: 6.6 };
+    src = [];
+    for (let k = -2; k <= 2; k++) {
+      const x = cloud.x + (k / 2) * cloud.half;
+      src.push({ x, y: cloud.base, q: -1 }, { x, y: cloud.top, q: 0.8 });
+      src.push({ x, y: 2 * GROUND - cloud.base, q: 1 }, { x, y: 2 * GROUND - cloud.top, q: -0.8 }); // mirror images
+    }
     const nodes = [];
-    for (let x = 2; x <= 10; x++) for (let y = 2; y <= 5; y++) nodes.push({ p: [x, y], e: fieldAt(x, y) });
+    for (const x of XS.slice(1, -1)) for (const y of YS.slice(1)) nodes.push({ p: [x, y], e: E(x, y) }); // droplets keep clear of the ground
     const pairs = [];
     for (const a of nodes) for (const b of nodes) {
       const k = len(a.e) / len(b.e);
-      if (k >= 2.6 && k <= 5 && between(a.e, b.e) >= 25 && len(sub(a.p, b.p)) >= 4.5) pairs.push([a, b]);
+      if (k >= 2.6 && k <= 6 && between(a.e, b.e) >= 20 && Math.abs(a.p[0] - b.p[0]) >= 3) pairs.push([a, b]);
     }
     if (!pairs.length) continue;
-    [strong, weak] = pick(pairs); E = fieldAt;
+    [strong, weak] = pick(pairs);
     break;
   }
   // drawn length of a field arrow: proportional to the field strength, so the difference between the two points is plain to see
-  const shown = (e) => Math.max(0.14, Math.min(0.9, (0.8 * len(e)) / len(strong.e)));
+  const shown = (e) => Math.max(0.13, Math.min(0.8, (0.72 * len(e)) / len(strong.e)));
   const posAtStrong = pick([true, false]);
   const spots = [{ ...(posAtStrong ? strong : weak), sign: 1 }, { ...(posAtStrong ? weak : strong), sign: -1 }];
   const unit = (e) => [e[0] / len(e), e[1] / len(e)];
   let tips;
+  function scenery(b, ctx) {
+    // ground
+    const [, gy] = b.px(0, GROUND);
+    ctx.fillStyle = "#e9e4d3"; ctx.fillRect(0, gy, b.w, b.h - gy);
+    ctx.strokeStyle = "#8a7f5c"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(b.w, gy); ctx.stroke();
+    ctx.font = "700 15px -apple-system, Arial, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    // charge drawn on the ground only where the field there is appreciable, with the sign the field implies
+    const under = Math.abs(E(cloud.x, GROUND + 0.01)[1]);
+    for (let x = 0.6; x < 12; x += 0.9) {
+      const ey = E(x, GROUND + 0.01)[1];
+      if (Math.abs(ey) < 0.12 * under) continue;
+      ctx.fillStyle = ey > 0 ? "#c0392b" : "#1f5fbf"; ctx.fillText(ey > 0 ? "+" : "\u2212", b.px(x, 0)[0], gy + 13);
+    }
+    // cloud
+    ctx.fillStyle = "#c9cfdb";
+    const puff = (x, y, rx, ry) => { const [px, py] = b.px(x, y); ctx.beginPath(); ctx.ellipse(px, py, rx * b.scale, ry * b.scale, 0, 0, 7); ctx.fill(); };
+    puff(cloud.x, 6.05, cloud.half + 0.55, 0.62); puff(cloud.x - cloud.half * 0.55, 6.45, cloud.half * 0.6, 0.6); puff(cloud.x + cloud.half * 0.5, 6.5, cloud.half * 0.65, 0.55);
+    for (let k = -2; k <= 2; k++) {
+      const x = cloud.x + (k / 2) * cloud.half;
+      ctx.fillStyle = "#1f5fbf"; ctx.fillText("−", ...b.px(x, cloud.base + 0.18));
+      ctx.fillStyle = "#c0392b"; ctx.fillText("+", ...b.px(x, cloud.top + 0.05));
+    }
+  }
   return {
     id: "force", topic: "Forces on charges in an electric field", w: 12, h: 7, grid: false,
-    prompt: `The grey arrows show the electric field in a region; a longer arrow means a stronger field. A particle with charge ${M("<mo>+</mo><mi>q</mi>")} sits at one marked point and a particle with charge ${M("<mo>&#x2212;</mo><mi>q</mi>")} at the other. Drag from each particle to draw the electric force on it. What counts is that each direction is roughly right and that the larger force is clearly the longer arrow.`,
+    prompt: `A thundercloud has negative charge along its base and positive charge near its top; the ground beneath it becomes positively charged. The grey arrows show the electric field in the air between them; a longer arrow means a stronger field. Two tiny water droplets hang in the air, one carrying charge ${M("<mo>+</mo><mi>q</mi>")} and the other ${M("<mo>&#x2212;</mo><mi>q</mi>")}. Drag from each droplet to draw the electric force on it (leave gravity out). What counts is that each direction is roughly right and that the larger force is clearly the longer arrow.`,
     setup(b) { tips = spots.map((s) => b.addHandle({ x: s.p[0], y: s.p[1] })); },
     paint(b, ctx, review) {
-      for (let x = 1; x <= 11; x++) for (let y = 1; y <= 6; y++) {
-        if (spots.some((s) => s.p[0] === x && s.p[1] === y)) continue; // no field arrow where a particle sits
+      scenery(b, ctx);
+      for (const x of XS) for (const y of YS) {
+        if (spots.some((s) => s.p[0] === x && s.p[1] === y)) continue; // no field arrow where a droplet sits
         const e = E(x, y), u = unit(e), h = shown(e) / 2;
-        draw(b, ctx, [x - u[0] * h, y - u[1] * h], [x + u[0] * h, y + u[1] * h], "#a9b1c0", 2);
+        draw(b, ctx, [x - u[0] * h, y - u[1] * h], [x + u[0] * h, y + u[1] * h], "#9aa3b5", 2);
       }
       spots.forEach((s, i) => {
-        const u = unit(s.e), L = s === spots.find((t) => t.p === strong.p) ? 1.5 : 0.8;
+        const u = unit(s.e), L = s.p === strong.p ? 1.4 : 0.75;
         if (review) draw(b, ctx, s.p, [s.p[0] + s.sign * u[0] * L, s.p[1] + s.sign * u[1] * L], RIGHT, 3.5);
         if (len(sub([tips[i].x, tips[i].y], s.p)) > 0.1) draw(b, ctx, s.p, [tips[i].x, tips[i].y], MINE, 3.5);
         const [x, y] = b.px(...s.p);
-        charge(ctx, x, y, s.sign, 11);
-        symbol(ctx, [{ t: s.sign > 0 ? "+" : "\u2212", plain: true }, { t: "q" }], x + 24, y + 26, INK, 16);
+        charge(ctx, x, y, s.sign, 10);
+        symbol(ctx, [{ t: s.sign > 0 ? "+" : "−", plain: true }, { t: "q" }], x + 24, y + 24, INK, 16);
       });
     },
-    solve() { tips.forEach((t, i) => { const s = spots[i], u = unit(s.e), L = s.p === strong.p ? 1.5 : 0.8; t.x = s.p[0] + s.sign * u[0] * L; t.y = s.p[1] + s.sign * u[1] * L; }); },
+    solve() { tips.forEach((t, i) => { const s = spots[i], u = unit(s.e), L = s.p === strong.p ? 1.4 : 0.75; t.x = s.p[0] + s.sign * u[0] * L; t.y = s.p[1] + s.sign * u[1] * L; }); },
     ready: () => tips.every((t, i) => len(sub([t.x, t.y], spots[i].p)) > 0.25),
     judge: () => judgeForce(spots[0].e, spots[1].e, tips.map((t, i) => sub([t.x, t.y], spots[i].p))),
     review: () => `<p>A charge ${M("<mi>q</mi>")} at a point where the field is ${V("E")} feels the force</p>
       <math display="block"><mover><mi>F</mi><mo>&#x2192;</mo></mover><mo>=</mo><mi>q</mi><mover><mi>E</mi><mo>&#x2192;</mo></mover></math>
-      <p>Only the field at the particle's own position matters. The force on a positive charge is along that field; the force on a negative charge is opposite to it. The two charges here have the same size, so the larger force is on the one sitting where the field is stronger, whatever its sign.</p>`,
+      <p>Only the field at the droplet's own position matters. The force on a positive charge is along that field; the force on a negative charge is opposite to it. The two droplets carry charges of the same size, so the larger force is on the one sitting where the field is stronger, whatever its sign.</p>`,
   };
 }
 
