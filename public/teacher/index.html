@@ -11,7 +11,7 @@
   main { padding: 30px 20px 10px; }
   .lead { color: var(--ink-soft); max-width: 66ch; margin: 10px 0 18px; }
   .sample { border-left: 4px solid var(--warn); }
-  .tiles { display: grid; grid-template-columns: repeat(3, 1fr) 1.6fr; gap: 14px; margin: 18px 0 26px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr) 1.9fr; gap: 14px; margin: 18px 0 26px; }
   .tile .big { font-family: var(--serif); font-size: 2rem; line-height: 1.1; }
   .tile .lab { font-size: 0.82rem; color: var(--ink-soft); }
   .dist { display: flex; align-items: flex-end; gap: 8px; height: 74px; margin-top: 6px; }
@@ -34,6 +34,16 @@
   table.err .bar { height: 5px; border-radius: 3px; margin-top: 4px; background: var(--pos); }
   table.err tr.ok .bar { background: var(--accent); }
   table.err tr.ok td { font-weight: 600; }
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 26px; }
+  .panels h4 { font: 600 0.98rem var(--sans); margin: 0 0 8px; display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .panels h4 span { font-family: var(--serif); font-size: 1.15rem; font-weight: 400; white-space: nowrap; }
+  .panels h4 small { font: 0.8rem var(--sans); color: var(--ink-soft); }
+  table.blanks { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  table.blanks th { text-align: left; font-weight: 600; color: var(--ink-soft); font-size: 0.78rem; padding: 0 8px 6px 0; }
+  table.blanks td { padding: 5px 8px 5px 0; border-top: 1px solid var(--rule); vertical-align: middle; }
+  table.blanks .n { text-align: right; font-variant-numeric: tabular-nums; }
+  table.blanks .card-cell math { font-size: 1em; }
+  @media (max-width: 800px) { .panels { grid-template-columns: 1fr; } }
   .key { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.86rem; color: var(--ink-soft); margin: 0 0 16px; }
   .key i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; }
   @media (max-width: 800px) { .tiles { grid-template-columns: 1fr 1fr; } .qbody { grid-template-columns: 1fr; } }
@@ -47,7 +57,7 @@
 
 <main class="wrap">
   <h1>Check-in: how the class did</h1>
-  <p class="lead">Every student gets the same four questions with different numbers. Here all the answers are redrawn in one common picture per question and laid on top of each other, so you can see what the class did without opening each answer.</p>
+  <p class="lead">Every student gets the same five questions with different numbers. Here all the answers are redrawn in one common picture per question and laid on top of each other, so you can see what the class did without opening each answer.</p>
 
   <div class="card sample">
     <strong>Sample data.</strong> The 50 students shown here are simulated, not real. <span id="mineNote"></span>

@@ -2,6 +2,7 @@
 // Each question tests something learned before this lesson (vectors; Chapter 22).
 import { Board, arrow, symbol, charge, INK, SOFT, MINE, RIGHT } from "/assets/board.js";
 import { judgeVectors, judgePointField, judgeCoulomb, judgeForce } from "/assets/checkin-judge.js";
+import { rodGravity } from "/before/checkin-trial/rod.js";
 
 const $ = (id) => document.getElementById(id);
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
@@ -12,7 +13,7 @@ const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
 const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
 /** Angle between two vectors, in degrees (0 to 180). */
 const between = (a, b) => deg(Math.acos(Math.max(-1, Math.min(1, (a[0] * b[0] + a[1] * b[1]) / (len(a) * len(b))))));
-const STORE = "learn.phylab.uk/checkin-trial/v1";
+const STORE = "learn.phylab.uk/checkin-trial/v2";
 const M = (s) => `<math>${s}</math>`;
 const V = (l) => M(`<mover><mi>${l}</mi><mo>&#x2192;</mo></mover>`);
 const draw = (b, ctx, from, to, color, width, dash) => arrow(ctx, ...b.px(...from), ...b.px(...to), color, width, dash);
@@ -181,14 +182,15 @@ let items = [], results = null, startedAt = Date.now();
 
 function build() {
   results = null; startedAt = Date.now();
-  items = [vectorSum(), pointChargeField(), coulomb(), forceInField()];
-  $("items").innerHTML = items.map((it, i) => `
+  items = [vectorSum(), pointChargeField(), coulomb(), forceInField(), rodGravity()];
+  $("items").innerHTML = items.map((it, i) => it.custom ? `<div class="card q" id="q-${it.id}"></div>` : `
     <div class="card q" id="q-${it.id}">
       <p class="stem"><span class="n">${i + 1}.</span>${it.prompt}</p>
       <div class="fieldbox"><canvas id="cv-${it.id}"></canvas></div>
       <div class="readout" id="ro-${it.id}"></div>
     </div>`).join("");
-  items.forEach((it) => {
+  items.forEach((it, i) => {
+    if (it.custom) { it.mount($("q-" + it.id), i + 1, check); return; }
     it.board = new Board($("cv-" + it.id), {
       w: it.w, h: it.h, grid: it.grid,
       onChange: () => { if (it.readout) $("ro-" + it.id).textContent = it.readout(); check(); },
@@ -211,10 +213,10 @@ function check() {
 
 function submit() {
   results = items.map((it) => ({ it, ...it.judge() }));
-  items.forEach((it) => { it.board.locked = true; it.board.draw(); });
+  items.forEach((it) => { if (it.custom) it.lock(); else { it.board.locked = true; it.board.draw(); } });
   try { // keep the submission in this browser, so the teacher view can show it next to the sample class
     const all = JSON.parse(localStorage.getItem(STORE) || "[]");
-    all.push({ t: Date.now(), seconds: Math.round((Date.now() - startedAt) / 1000), results: results.map((r) => ({ id: r.it.id, ok: r.ok, error: r.error, norm: r.norm })) });
+    all.push({ t: Date.now(), seconds: Math.round((Date.now() - startedAt) / 1000), results: results.map((r) => ({ id: r.it.id, ok: r.ok, error: r.error, norm: r.norm, parts: r.parts })) });
     localStorage.setItem(STORE, JSON.stringify(all.slice(-20)));
   } catch { /* storage unavailable */ }
   const right = results.filter((r) => r.ok).length, missed = results.filter((r) => !r.ok);
@@ -227,10 +229,11 @@ function submit() {
       <div class="card review">
         <span class="tag">Refresher</span><h3>${r.it.topic}</h3>
         ${r.it.review(r)}
-        <div class="fieldbox"><canvas id="rv-${r.it.id}"></canvas></div>
+        ${r.it.custom ? "" : `<div class="fieldbox"><canvas id="rv-${r.it.id}"></canvas></div>`}
         ${r.it.legend ? `<p class="cap">${r.it.legend}</p>` : ""}
       </div>`).join("")}`;
-  missed.forEach((r) => {
+  results.filter((r) => r.it.custom).forEach((r) => r.it.showResult(r));
+  missed.filter((r) => !r.it.custom).forEach((r) => {
     const b = new Board($("rv-" + r.it.id), { w: r.it.w, h: r.it.h, grid: r.it.grid, paint: (bd, ctx) => r.it.paint(bd, ctx, true) });
     b.locked = true; b.draw();
   });
@@ -250,7 +253,7 @@ $("again").addEventListener("click", () => { build(); window.scrollTo(0, 0); });
 // reviewer only: fill in a correct answer everywhere, to see the all-correct result
 $("fill").addEventListener("click", () => {
   if (results) return;
-  items.forEach((it) => { it.solve(); it.board.draw(); if (it.readout) $("ro-" + it.id).textContent = it.readout(); });
+  items.forEach((it) => { it.solve(); if (it.custom) return; it.board.draw(); if (it.readout) $("ro-" + it.id).textContent = it.readout(); });
   check();
 });
 build();

@@ -23,6 +23,7 @@ export const LIMITS = {
   pointField: { angle: 15, farLow: 0.15, farHigh: 0.4, sameLow: 0.75, sameHigh: 1.33 },
   coulomb: { low: 0.66, high: 0.76 },
   force: { angle: 20, lengthLow: 0.6, lengthHigh: 1.67 },
+  rod: { angle: 10, sumLow: 0.7, sumHigh: 1.3, ratio: 0.06 },
 };
 
 /** 1 · sum of vectors A and B; S is what the student drew. */
@@ -112,5 +113,50 @@ export function judgeForce(phi, e, v) {
     data: { fieldDirectionDegrees: phi, protonOffDegrees: round(proton, 0), electronOffDegrees: round(electron, 0), electronToProtonLength: round(ratio) },
     // angles measured from the field direction; lengths relative to the arrow on the proton
     norm: { proton: { a: round(signedAngle(e, v[0]), 1), l: 1 }, electron: { a: round(signedAngle(e, v[1]), 1), l: round(ratio, 3) } },
+  };
+}
+
+/** The cards that belong in the five blanks of the rod integral. */
+export const ROD_KEY = { dm: "M/L", dist: "y2+r2", factor: "r/root", lower: "-L/2", upper: "+L/2" };
+/** True force on the ball divided by the force if the whole rod sat at its centre; ratio = L / r. */
+export const rodFactor = (ratio) => 1 / Math.sqrt(1 + (ratio / 2) ** 2);
+
+/**
+ * 5 · gravitational pull of a thin rod on a ball in its bisecting plane (the gravity twin of the charged rod).
+ * p: { ratio (L / r), toPiece, toCentre (directions from the ball), pulls: [f1, f2] (the two given pulls) }
+ * a: { va (pull of one piece), vb (sum of the two pulls), blanks: { dm, dist, factor, lower, upper }, est }
+ */
+export function judgeRod(p, a) {
+  const L = LIMITS.rod, parts = {};
+  // one piece
+  const offPiece = between(a.va, p.toPiece), offCentre = between(a.va, p.toCentre);
+  parts.piece = { ok: offPiece <= L.angle, error: null };
+  if (!parts.piece.ok) parts.piece.error = offCentre <= L.angle ? "Pull of one piece drawn toward the centre of the rod, not toward the piece"
+    : between(a.va, [-p.toPiece[0], -p.toPiece[1]]) <= 25 ? "Pull drawn away from the rod" : "Pull of one piece not drawn toward that piece";
+  // two symmetric pieces
+  const sum = add(p.pulls[0], p.pulls[1]), sumOff = between(a.vb, sum), sumRatio = len(a.vb) / len(sum);
+  parts.pair = { ok: sumOff <= L.angle && sumRatio >= L.sumLow && sumRatio <= L.sumHigh, error: null };
+  if (!parts.pair.ok) parts.pair.error = sumOff > L.angle ? "Sum of the two pulls not straight toward the rod" : "Sum of the two pulls: direction right, length wrong";
+  // the integral
+  const wrong = Object.keys(ROD_KEY).filter((k) => a.blanks[k] !== ROD_KEY[k]);
+  parts.integral = { ok: wrong.length === 0, error: null };
+  if (wrong.length) parts.integral.error = a.blanks.dist === "r2" ? "Integral: used the distance to the centre for every piece"
+    : a.blanks.factor === "1" ? "Integral: left out the factor for the part of the pull that points at the rod"
+    : a.blanks.lower === "0" && a.blanks.upper === "L" ? "Integral: limits 0 to L instead of −L/2 to +L/2"
+    : wrong.includes("dm") ? "Integral: mass of a small piece not written as (M/L) dy" : "Integral: set up incorrectly";
+  // the ratio
+  const k = rodFactor(p.ratio);
+  parts.ratio = { ok: Math.abs(a.est - k) <= L.ratio, error: null };
+  if (!parts.ratio.ok) parts.ratio.error = Math.abs(a.est - 1) <= 0.05 ? "Ratio: treated the rod as a point mass at its centre"
+    : a.est > 1.05 ? "Ratio: force larger than for a point mass" : "Ratio: miscalculated";
+
+  const first = Object.values(parts).find((x) => !x.ok);
+  const span = signedAngle(p.toCentre, p.toPiece), t = signedAngle(p.toCentre, a.va) / span;
+  const turn = signedAngle(sum, a.vb) * (Math.PI / 180);
+  return {
+    ok: !first, error: first ? first.error : null, parts,
+    data: { rodLengthOverDistance: p.ratio, pieceArrowOffDegrees: round(offPiece, 0), sumOffDegrees: round(sumOff, 0), blanks: a.blanks, ratioGiven: round(a.est), ratioCorrect: round(k) },
+    // t: 0 = aimed at the centre of the rod, 1 = aimed at the piece; pair: tip of the sum with the correct sum as the unit vector
+    norm: { t: round(t, 3), away: Math.abs(signedAngle(p.toCentre, a.va)) > 90, pair: { u: round(sumRatio * Math.cos(turn), 3), v: round(sumRatio * Math.sin(turn), 3) }, blanks: a.blanks, est: round(a.est, 3), correct: round(k, 3) },
   };
 }

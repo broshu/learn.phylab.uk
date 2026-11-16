@@ -4,7 +4,7 @@
 //
 // Run from the repository root:  node tools/make-checkin-sample.mjs
 import { writeFileSync } from "node:fs";
-import { judgeVectors, judgePointField, judgeCoulomb, judgeForce, between } from "../public/assets/checkin-judge.js";
+import { judgeVectors, judgePointField, judgeCoulomb, judgeForce, judgeRod, rodFactor, between } from "../public/assets/checkin-judge.js";
 
 const SEED = 20261116, N = 50;
 let state = SEED;
@@ -85,12 +85,42 @@ function force() {
   return judgeForce(phi, e, [turn([e[0] * Lp, e[1] * Lp], pa), turn([e[0] * Lp * ratio, e[1] * Lp * ratio], ea)]);
 }
 
+function rod() {
+  const ratio = pick([1, 2, 4]), rb = 5 / ratio, unit = (v) => [v[0] / len(v), v[1] / len(v)];
+  const toPiece = unit([-rb, uniform(1.9, 2.3)]), toCentre = [-1, 0], a = Math.min(1.6, rb * 0.55);
+  const pulls = [1, -1].map((s) => { const u = unit([-rb, s * 1.6]); return [u[0] * a, u[1] * a]; });
+  const sum = add(pulls[0], pulls[1]), k = rodFactor(ratio);
+  const one = choose([["right", 0.58], ["centre", 0.27], ["away", 0.05], ["off", 0.1]]);
+  const va = one === "right" ? turn(toPiece, normal(0, 3)) : one === "centre" ? turn(toCentre, normal(0, 3)) : one === "away" ? turn([-toPiece[0], -toPiece[1]], normal(0, 5)) : turn(toPiece, pick([-1, 1]) * uniform(15, 40));
+  const two = choose([["right", 0.68], ["tilted", 0.12], ["length", 0.2]]);
+  const vb = two === "right" ? turn([sum[0] * uniform(0.85, 1.15), sum[1] * uniform(0.85, 1.15)], normal(0, 3)) : two === "tilted" ? turn(sum, pick([-1, 1]) * uniform(15, 35)) : pick([[sum[0] * ((2 * a) / len(sum)) * 1.05 + 0, 0].map((n, i) => (i ? 0 : n)), [sum[0] * 0.5, 0]]);
+  const limits = choose([["ok", 0.6], ["zeroL", 0.3], ["mixed", 0.1]]);
+  const blanks = {
+    dm: choose([["M/L", 0.8], ["M", 0.15], ["ML", 0.05]]),
+    dist: choose([["y2+r2", 0.58], ["r2", 0.3], ["y2", 0.12]]),
+    factor: choose([["r/root", 0.5], ["1", 0.33], ["y/root", 0.17]]),
+    lower: limits === "ok" ? "-L/2" : limits === "zeroL" ? "0" : pick(["-L/2", "0"]),
+    upper: limits === "ok" ? "+L/2" : limits === "zeroL" ? "L" : "L",
+  };
+  const guess = choose([["right", 0.5], ["point", 0.3], ["other", 0.2]]);
+  const est = guess === "right" ? normal(k, 0.02) : guess === "point" ? normal(1, 0.015) : uniform(0.2, 1.4);
+  return judgeRod({ ratio, toPiece, toCentre, pulls }, { va, vb, blanks, est: Math.round(Math.max(0, Math.min(1.5, est)) * 100) / 100 });
+}
+
 const makers = { vectors, pointField, coulomb, force };
 const students = [];
 for (let i = 1; i <= N; i++) {
   const results = Object.entries(makers).map(([id, make]) => { const r = make(); return { id, ok: r.ok, error: r.error, norm: r.norm }; });
   students.push({ student: i, seconds: Math.round(Math.exp(normal(Math.log(150), 0.35))), results });
 }
+// the rod question was added later: it draws from its own stream, so the answers above did not change
+state = SEED + 5;
+for (const s of students) {
+  const r = rod();
+  s.results.push({ id: "rod", ok: r.ok, error: r.error, norm: r.norm, parts: r.parts });
+  s.seconds += Math.round(Math.exp(normal(Math.log(210), 0.3)));
+}
+makers.rod = rod;
 
 const file = new URL("../public/teacher/checkin-sample.json", import.meta.url);
 writeFileSync(file, JSON.stringify({ note: "SIMULATED data, not real students. Made by tools/make-checkin-sample.mjs.", seed: SEED, students }) + "\n");

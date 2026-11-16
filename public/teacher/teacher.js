@@ -1,8 +1,9 @@
 // learn.phylab.uk — teacher view of the check-in: all answers overlaid, with counts.
 import { arrow, charge, symbol } from "/assets/board.js";
-import { LIMITS } from "/assets/checkin-judge.js";
+import { LIMITS, ROD_KEY } from "/assets/checkin-judge.js";
+import { cardHtml } from "/assets/rod-cards.js";
 
-const STORE = "learn.phylab.uk/checkin-trial/v1";
+const STORE = "learn.phylab.uk/checkin-trial/v2";
 const GOOD = "#0d6b5f", BAD = "#c0392b", INK = "#1a2030", SOFT = "#8a93a6";
 const $ = (id) => document.getElementById(id);
 const rad = (d) => (d * Math.PI) / 180;
@@ -16,6 +17,7 @@ const QUESTIONS = [
     how: "Each dot is where one student put the sphere, as a fraction of the original distance. The shaded band is what counts as correct.", view: [0.3, 1.32, -0.13, 0.4], paint: paintCoulomb },
   { id: "force", title: "Force on a charge in an electric field", task: "Draw the electric force on a proton and on an electron in the same field.",
     how: "Each answer is turned so that the field points to the right. Arrow lengths are relative to each student's own arrow on the proton.", view: [-3.2, 3.2, -1.7, 2.1], paint: paintForce },
+  { id: "rod", title: "The pull of a rod: adding up small pieces", task: "Gravity twin of the charged rod treated in class: pull of one piece, of a symmetric pair, the integral, and the size of the result.", custom: renderRod },
 ];
 
 // ---------- data ----------
@@ -61,9 +63,9 @@ function thin(ctx, from, to, r, a) {
 }
 
 // ---------- 1 · vectors ----------
-function paintVectors(answers) {
+function paintVectors(answers, L = LIMITS.vectors, get = (r) => r.norm) {
   return ({ ctx, px, scale }) => {
-    const L = LIMITS.vectors, [ox, oy] = px(0, 0);
+    const [ox, oy] = px(0, 0);
     // what counts as correct
     ctx.fillStyle = "rgba(13,107,95,0.13)";
     ctx.beginPath(); ctx.arc(ox, oy, L.lengthHigh * scale, -rad(L.angle), rad(L.angle)); ctx.arc(ox, oy, L.lengthLow * scale, rad(L.angle), -rad(L.angle), true); ctx.closePath(); ctx.fill();
@@ -75,8 +77,8 @@ function paintVectors(answers) {
     // identical answers are spread in a small spiral so that every dot shows
     const seen = {};
     for (const a of answers) {
-      const r = a.r, key = `${r.norm.u.toFixed(2)},${r.norm.v.toFixed(2)}`, k = (seen[key] = (seen[key] || 0) + 1) - 1;
-      const [x, y] = px(r.norm.u, r.norm.v), s = 4.6 * Math.sqrt(k), t = k * 2.4;
+      const r = a.r, n = get(r), key = `${n.u.toFixed(2)},${n.v.toFixed(2)}`, k = (seen[key] = (seen[key] || 0) + 1) - 1;
+      const [x, y] = px(n.u, n.v), s = 4.6 * Math.sqrt(k), t = k * 2.4;
       dot(ctx, x + s * Math.cos(t), y + s * Math.sin(t), r, a);
     }
   };
@@ -149,6 +151,61 @@ function paintForce(answers) {
   };
 }
 
+// ---------- 5 · the rod ----------
+function renderRod(box, answers, n) {
+  const part = (name) => answers.map((a) => ({ r: { ok: a.r.parts[name].ok, norm: a.r.norm }, mine: a.mine }));
+  const share = (name) => { const c = answers.filter((a) => a.r.parts[name].ok).length; return `${Math.round((c / n) * 100)}% <small>· ${c} of ${n}</small>`; };
+  const NAMES = { dm: "Mass of a small piece", dist: "Distance squared", factor: "Factor toward the rod", lower: "Lower limit", upper: "Upper limit" };
+  const rows = Object.keys(ROD_KEY).map((key) => {
+    const right = answers.filter((a) => a.r.norm.blanks[key] === ROD_KEY[key]).length, wrong = {};
+    answers.forEach((a) => { const c = a.r.norm.blanks[key]; if (c !== ROD_KEY[key]) wrong[c] = (wrong[c] || 0) + 1; });
+    const top = Object.entries(wrong).sort((p, q) => q[1] - p[1])[0];
+    return `<tr><td>${NAMES[key]}</td><td class="card-cell">${cardHtml(ROD_KEY[key])}</td><td class="n">${Math.round((right / n) * 100)}%</td><td class="card-cell">${top ? cardHtml(top[0]) : "—"}</td><td class="n">${top ? top[1] : ""}</td></tr>`;
+  }).join("");
+  box.innerHTML = `
+    <div class="panels">
+      <div><h4>A1 · Pull of one piece <span>${share("piece")}</span></h4><div class="plot"><canvas id="rod-piece"></canvas></div>
+        <p class="how">Every answer is redrawn on one picture. Arrows along the dashed line aim at the centre of the rod instead of at the piece.</p></div>
+      <div><h4>A2 · Sum of two symmetric pulls <span>${share("pair")}</span></h4><div class="plot"><canvas id="rod-pair"></canvas></div>
+        <p class="how">Turned and scaled so that the correct sum is the green arrow; each dot is the tip of one student's arrow.</p></div>
+      <div><h4>B · The integral <span>${share("integral")}</span></h4>
+        <table class="blanks"><tr><th>Box</th><th>Correct card</th><th class="n">Right</th><th>Most common wrong card</th><th class="n"></th></tr>${rows}</table></div>
+      <div><h4>C · Force compared with a point mass <span>${share("ratio")}</span></h4><div class="plot"><canvas id="rod-ratio"></canvas></div>
+        <p class="how">Each dot is one student's value. The correct value depends on the rod each student was given (three versions). A value of 1 treats the rod as a point mass at its centre.</p></div>
+    </div>`;
+
+  // A1: ball at the origin, rod to the left, the piece up at 32 degrees
+  const tilt = 32;
+  plot($("rod-piece"), [-3.4, 0.9, -0.9, 2.4], ({ ctx, px }) => {
+    const rodX = -2.6, pieceY = 2.6 * Math.tan(rad(tilt));
+    ctx.strokeStyle = "#d5dae3"; ctx.lineWidth = 1.5; ctx.setLineDash([4, 5]); ctx.beginPath(); ctx.moveTo(...px(0, 0)); ctx.lineTo(...px(rodX, 0)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = "#7b8496"; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(...px(rodX, -0.7)); ctx.lineTo(...px(rodX, 2.2)); ctx.stroke();
+    ctx.strokeStyle = "#d98200"; ctx.lineWidth = 10; ctx.beginPath(); ctx.moveTo(...px(rodX, pieceY - 0.16)); ctx.lineTo(...px(rodX, pieceY + 0.16)); ctx.stroke();
+    for (const a of [...part("piece")].sort((p, q) => p.mine - q.mine)) {
+      const ang = Math.PI - rad(tilt) * a.r.norm.t + (a.r.norm.away && Math.abs(a.r.norm.t) < 3 ? 0 : 0);
+      const t = a.r.norm.away ? rad(-tilt) : ang;
+      thin(ctx, px(0, 0), px(1.9 * Math.cos(t), 1.9 * Math.sin(t)), a.r, a);
+    }
+    arrow(ctx, ...px(0, 0), ...px(-2.05 * Math.cos(rad(tilt)), 2.05 * Math.sin(rad(tilt))), "#063f38", 3.2);
+    const [x, y] = px(0, 0); ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill();
+  });
+  plot($("rod-pair"), [-1.3, 2.9, -1.2, 1.2], paintVectors(part("pair"), { angle: LIMITS.rod.angle, lengthLow: LIMITS.rod.sumLow, lengthHigh: LIMITS.rod.sumHigh }, (r) => r.norm.pair));
+  plot($("rod-ratio"), [-0.08, 1.58, -0.3, 0.72], ({ ctx, px }) => {
+    ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(...px(0, 0)); ctx.lineTo(...px(1.5, 0)); ctx.stroke();
+    for (const v of [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5]) { const [x, y] = px(v, 0); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 6); ctx.stroke(); label(ctx, String(v), x, y + 16, INK); }
+    for (const [v, t] of [[0.447, "L = 4r"], [0.707, "L = 2r"], [0.894, "L = r"]]) {
+      const [x, y] = px(v, 0); ctx.fillStyle = "rgba(13,107,95,0.14)"; ctx.fillRect(x - LIMITS.rod.ratio * (px(1, 0)[0] - px(0, 0)[0]), px(0, 0.66)[1], 2 * LIMITS.rod.ratio * (px(1, 0)[0] - px(0, 0)[0]), y - px(0, 0.66)[1]);
+      label(ctx, t, x, px(0, 0.69)[1], GOOD);
+    }
+    label(ctx, "point mass", px(1, 0)[0], px(0, -0.2)[1], SOFT);
+    const stack = {};
+    for (const a of [...part("ratio")].sort((p, q) => p.mine - q.mine)) {
+      const k = Math.round(a.r.norm.est / 0.02), c = (stack[k] = (stack[k] || 0) + 1), [x, y] = px(k * 0.02, 0);
+      dot(ctx, x, y - 9 - (c - 1) * 11, a.r, a);
+    }
+  });
+}
+
 // ---------- the page ----------
 function render() {
   const all = everyone(), own = all.filter((s) => s.mine).length, n = all.length;
@@ -160,12 +217,12 @@ function render() {
   const scores = all.map((s) => s.results.filter((r) => r.ok).length);
   const mean = scores.reduce((a, b) => a + b, 0) / n;
   const times = all.map((s) => s.seconds).filter((t) => t != null).sort((a, b) => a - b), median = times[Math.floor(times.length / 2)];
-  const counts = [0, 1, 2, 3, 4].map((k) => scores.filter((s) => s === k).length), most = Math.max(...counts);
+  const counts = QUESTIONS.map((_, k) => k).concat(QUESTIONS.length).map((k) => scores.filter((s) => s === k).length), most = Math.max(...counts);
   const rate = (id) => all.filter((s) => s.results.find((r) => r.id === id).ok).length / n;
   const weakest = [...QUESTIONS].sort((a, b) => rate(a.id) - rate(b.id))[0];
   $("tiles").innerHTML = `
     <div class="card tile"><div class="big">${n}</div><div class="lab">students<br>${sample.students.length} simulated${own ? ` + ${own} from this browser` : ""}</div></div>
-    <div class="card tile"><div class="big">${mean.toFixed(1)} <span style="font-size:1rem">of 4</span></div><div class="lab">average score</div></div>
+    <div class="card tile"><div class="big">${mean.toFixed(1)} <span style="font-size:1rem">of ${QUESTIONS.length}</span></div><div class="lab">average score</div></div>
     <div class="card tile"><div class="big">${Math.floor(median / 60)} min ${String(median % 60).padStart(2, "0")} s</div><div class="lab">median time on the check-in</div></div>
     <div class="card tile"><div class="lab">Students by number of correct answers</div>
       <div class="dist">${counts.map((c, k) => `<div><b>${c}</b><i style="height:${Math.round((c / most) * 44)}px"></i>${k} right</div>`).join("")}</div></div>`;
@@ -179,18 +236,19 @@ function render() {
     return `
       <article class="card qcard">
         <div class="qhead"><h2>${i + 1}. ${q.title}${q === weakest ? ' <span class="tag" style="color:var(--pos);margin-left:8px">least secure</span>' : ""}</h2>
-          <span class="pct">${Math.round((right / n) * 100)}% <small>correct · ${right} of ${n}</small></span></div>
+          <span class="pct">${Math.round((right / n) * 100)}% <small>${q.custom ? "all parts correct" : "correct"} · ${right} of ${n}</small></span></div>
         <p class="task">${q.task}</p>
-        <div class="qbody">
+        ${q.custom ? `<div id="custom-${q.id}"></div>` : `<div class="qbody">
           <div><div class="plot"><canvas id="plot-${q.id}"></canvas></div><p class="how">${q.how}</p></div>
           <table class="err">${rows.map(([text, c, ok]) => `<tr class="${ok ? "ok" : ""}"><td>${text}<div class="bar" style="width:${Math.max(2, (c / n) * 100)}%"></div></td><td class="n">${c} · ${Math.round((c / n) * 100)}%</td></tr>`).join("")}</table>
-        </div>
+        </div>`}
       </article>`;
   }).join("");
 
   for (const q of QUESTIONS) {
     const answers = all.map((s) => ({ r: s.results.find((r) => r.id === q.id), mine: s.mine }));
-    plot($("plot-" + q.id), q.view, q.paint(answers));
+    if (q.custom) q.custom($("custom-" + q.id), answers, n);
+    else plot($("plot-" + q.id), q.view, q.paint(answers));
   }
 }
 
