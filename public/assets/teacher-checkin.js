@@ -56,6 +56,7 @@ function plot(canvas, view, painter) {
 }
 const colour = (r, alpha) => (r.ok ? `rgba(13,107,95,${alpha})` : `rgba(192,57,43,${alpha})`);
 function dot(ctx, x, y, r, a) {
+  if (a.live) { ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fillStyle = "rgba(217,130,0,0.25)"; ctx.fill(); ctx.strokeStyle = LIVE; ctx.lineWidth = 2.5; ctx.stroke(); }
   ctx.beginPath(); ctx.arc(x, y, 5, 0, 7);
   ctx.fillStyle = colour(r, 0.62); ctx.fill();
   if (a.mine) { ctx.strokeStyle = INK; ctx.lineWidth = 2.5; ctx.stroke(); }
@@ -65,10 +66,13 @@ function label(ctx, text, x, y, color = SOFT, align = "center", weight = "600") 
   ctx.fillText(text, x, y);
 }
 function thin(ctx, from, to, r, a) {
+  if (a.live) { arrow(ctx, ...from, ...to, "rgba(217,130,0,0.45)", 9); arrow(ctx, ...from, ...to, colour(r, 1), 3); return; }
   if (a.mine) arrow(ctx, ...from, ...to, INK, 4.5);
   arrow(ctx, ...from, ...to, colour(r, a.mine ? 1 : 0.42), a.mine ? 2.2 : 1.8);
 }
-const mineLast = (list) => [...list].sort((p, q) => p.mine - q.mine);
+// the answer being drawn right now goes on top of everything, then this browser's submissions
+const mineLast = (list) => [...list].sort((p, q) => (p.mine - q.mine) || (!!p.live - !!q.live));
+const LIVE = "#d98200"; // the orange the student draws with
 
 // ---------- 1 · vectors ----------
 function paintVectors(answers, L = LIMITS.vectors, get = (r) => r.norm) {
@@ -245,9 +249,11 @@ export function renderSummary(box, { compact = false } = {}) {
  * One question: the overlaid picture first, the counts below it.
  * compact: for the demonstration column (shorter labels, the reading guide folded away, only the main errors listed).
  */
-export function renderQuestion(box, id, { compact = false } = {}) {
-  const all = everyone(), n = all.length, i = QUESTIONS.findIndex((q) => q.id === id), q = QUESTIONS[i];
+export function renderQuestion(box, id, { compact = false, live = null } = {}) {
+  const all = everyone(), i = QUESTIONS.findIndex((q) => q.id === id), q = QUESTIONS[i];
   const answers = all.map((s) => ({ r: resultOf(s, q.id), mine: s.mine }));
+  if (live) answers.push({ r: live, mine: true, live: true }); // the answer just drawn, not yet submitted
+  const n = answers.length;
   const right = answers.filter((a) => a.r.ok).length;
   const weakest = [...QUESTIONS].sort((a, b) => rate(all, a.id) - rate(all, b.id))[0] === q;
   const errors = {};
@@ -256,7 +262,8 @@ export function renderQuestion(box, id, { compact = false } = {}) {
   const shown = compact ? rows.slice(0, 3) : rows, rest = rows.slice(shown.length).reduce((s, r) => s + r[1], 0);
   const bar = (text, c, ok) => `<tr class="${ok ? "ok" : ""}"><td>${text}<div class="bar" style="width:${Math.max(2, (c / n) * 100)}%"></div></td><td class="n">${c}${compact ? "" : ` · ${Math.round((c / n) * 100)}%`}</td></tr>`;
   const table = `<table class="err">${compact ? "" : bar("Correct", right, true)}${shown.map(([e, c]) => bar(e, c, false)).join("")}${rest ? `<tr class="rest"><td>${rows.length - shown.length} other kind${rows.length - shown.length === 1 ? "" : "s"} of answer</td><td class="n">${rest}</td></tr>` : ""}</table>`;
-  const head = `<div class="qhead"><h3>${i + 1}. ${q.title}${weakest ? ' <span class="tag weak">least secure</span>' : ""}</h3>
+  const flag = live ? `<div class="livebar ${live.ok ? "ok" : "no"}"><b>Just now</b> · this student · ${live.ok ? "correct" : live.error || "not correct"}</div>` : "";
+  const head = `${flag}<div class="qhead"><h3>${i + 1}. ${q.title}${weakest ? ' <span class="tag weak">least secure</span>' : ""}</h3>
     <span class="pct">${Math.round((right / n) * 100)}% <small>${q.custom ? "all parts correct" : "correct"}${compact ? "" : ` · ${right} of ${n}`}</small></span></div>`;
   if (q.custom) {
     box.innerHTML = `${head}${compact ? "" : `<p class="task">${q.task}</p>`}<div data-custom></div>`;

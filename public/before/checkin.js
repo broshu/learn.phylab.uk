@@ -277,7 +277,11 @@ function forceInField() {
 export function startCheckin(options = {}) {
   // wrap(id, html): lets the page put each question inside its own layout (the demonstration puts the teacher's card beside it)
   // inline: show the result and refreshers under the questions (the reviewer page); the lesson page shows them in its Learn step instead
-  const { reviewer = false, inline = true, wrap = (id, html) => html, onSubmit = () => {}, onRestart = () => {} } = options;
+  // onLive(id, result): called each time an answer is let go of, with that answer marked, so a page can show it at once
+  const { reviewer = false, inline = true, wrap = (id, html) => html, onSubmit = () => {}, onRestart = () => {}, onLive = null } = options;
+  const kept = (r) => ({ id: r.id, ok: r.ok, error: r.error, skipped: !!r.skipped, norm: r.norm, parts: r.parts });
+  const live = (it) => { if (onLive && !results && (it.custom || it.ready())) { const r = it.judge(); if (!r.skipped) onLive(it.id, kept({ id: it.id, ...r })); } };
+  let liveTimer = null;
   let items = [], results = null, startedAt = Date.now();
 
   function build() {
@@ -290,10 +294,11 @@ export function startCheckin(options = {}) {
         <div class="readout" id="ro-${it.id}"></div>
       </div>`)).join("");
     items.forEach((it, i) => {
-      if (it.custom) { it.mount($("q-" + it.id), i + 1, check); return; }
+      // the rod question changes through cards and buttons as well as drags: mark it once things settle
+      if (it.custom) { it.mount($("q-" + it.id), i + 1, () => { check(); clearTimeout(liveTimer); liveTimer = setTimeout(() => live(it), 250); }); return; }
       it.board = new Board($("cv-" + it.id), {
         w: it.w, h: it.h, grid: it.grid,
-        onChange: () => { if (it.readout) $("ro-" + it.id).textContent = it.readout(); check(); },
+        onChange: (b, released) => { if (it.readout) $("ro-" + it.id).textContent = it.readout(); check(); if (released) live(it); },
       });
       it.setup(it.board); // the handles must exist before the first paint
       it.board.paint = (b, ctx) => it.paint(b, ctx, false);

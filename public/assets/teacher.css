@@ -63,3 +63,9 @@ table.blanks .card-cell math { font-size: 1em; }
 .tsum .tnote { font-size: 0.78rem; color: var(--ink-soft); margin: 8px 0 6px; }
 .tsum .key { margin: 0; gap: 4px 12px; font-size: 0.78rem; }
 .tsum .key i { width: 10px; height: 10px; }
+
+/* the answer a student has just let go of: shown at once, highlighted until the next one */
+.livebar { font-size: 0.82rem; padding: 5px 10px; border-radius: 6px; margin: 0 0 8px; background: #fff3dc; color: #7a4a00; border: 1.5px solid #d98200; }
+.livebar.ok b { color: var(--accent); } .livebar.no b { color: var(--pos); }
+.tcard.flash { animation: liveflash 1.2s ease-out; }
+@keyframes liveflash { 0% { box-shadow: 0 0 0 4px rgba(217,130,0,0.85); background: #fff7e8; } 100% { box-shadow: 0 0 0 0 rgba(217,130,0,0); background: #fff; } }

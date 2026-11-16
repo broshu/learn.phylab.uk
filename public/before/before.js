@@ -20,7 +20,7 @@ const wrap = (id, html) => `<div class="row"><div class="scol">${html}</div><asi
 await loadSample();
 function renderTeacher() {
   renderSummary($("tSumCheck"), { compact: true });
-  document.querySelectorAll("[data-tq]").forEach((box) => renderQuestion(box, box.dataset.tq, { compact: true }));
+  document.querySelectorAll("[data-tq]").forEach((box) => renderQuestion(box, box.dataset.tq, { compact: true, live: live[box.dataset.tq] }));
 }
 
 // ---------- moving between steps ----------
@@ -40,13 +40,21 @@ document.addEventListener("visibilitychange", () => rec.event("step", { name: do
 
 // ---------- 1 · check-in ----------
 let last = null; // the latest submission, with the question objects, for the Learn step
+const live = {};  // answers drawn but not yet submitted, shown at once in the teacher's cards
+function showLive(id, result) {
+  live[id] = result;
+  const box = document.querySelector(`[data-tq="${id}"]`); if (!box) return;
+  renderQuestion(box, id, { compact: true, live: result });
+  box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash");
+}
 const checkin = startCheckin({
-  inline: false, wrap,
+  inline: false, wrap, onLive: showLive,
   onSubmit(summary) {
     state.check.attempts.push({ t: Date.now(), score: summary.score, total: summary.total, skipped: summary.skipped, missed: summary.missed });
     save();
     rec.event("check-submit", { score: summary.score, skipped: summary.skipped });
     last = summary.detail;
+    for (const k in live) delete live[k]; // now part of the submission itself
     buildLearn({
       head: $("learnHead"), rows: $("learnRows"), detail: last, wrap: (id, html) => wrap(null, html),
       onOpen: (id, what, open) => rec.event("learn-toggle", { question: id, what, open }),
@@ -55,7 +63,7 @@ const checkin = startCheckin({
     renderTeacher();
     show("learn");
   },
-  onRestart() { rec.event("check-retry"); $("toLearn").hidden = true; renderTeacher(); },
+  onRestart() { for (const k in live) delete live[k]; rec.event("check-retry"); $("toLearn").hidden = true; renderTeacher(); },
 });
 renderTeacher();
 $("toLearn").addEventListener("click", () => show("learn"));
