@@ -75,14 +75,20 @@ function coulomb() {
 
 function force() {
   const phi = pick([0, 30, 60, 120, 150, 180, 210, 240, 300, 330]), e = [Math.cos(rad(phi)), Math.sin(rad(phi))];
-  const Lp = uniform(0.9, 1.6);
-  const how = choose([["right", 0.66], ["electronAlong", 0.2], ["electronSmaller", 0.06], ["bothReversed", 0.03], ["offLine", 0.05]]);
-  let pa = normal(0, 6), ea = 180 + normal(0, 7), ratio = uniform(0.75, 1.3);
-  if (how === "electronAlong") ea = normal(0, 7);
-  if (how === "electronSmaller") ratio = uniform(0.3, 0.5);
-  if (how === "bothReversed") { pa = 180 + normal(0, 6); ea = normal(0, 6); }
-  if (how === "offLine") ea = pick([90, -90]) + normal(0, 10);
-  return judgeForce(phi, e, [turn([e[0] * Lp, e[1] * Lp], pa), turn([e[0] * Lp * ratio, e[1] * Lp * ratio], ea)]);
+  const Lw = uniform(0.7, 1);
+  const how = choose([["right", 0.52], ["negativeAlong", 0.2], ["equal", 0.15], ["backwards", 0.05], ["bothReversed", 0.03], ["offLine", 0.05]]);
+  let pa = normal(0, 9), na = 180 + normal(0, 9), longer = uniform(1.4, 2.4);
+  if (how === "negativeAlong") na = normal(0, 9);
+  if (how === "equal") longer = normal(1, 0.08);
+  if (how === "backwards") longer = uniform(0.5, 0.75);
+  if (how === "bothReversed") { pa = 180 + normal(0, 6); na = normal(0, 6); }
+  if (how === "offLine") na = pick([90, -90]) + normal(0, 10);
+  // fields at the two particles: different directions, the stronger one about three times the weaker
+  const posStronger = phi % 60 === 0, other = turn(e, 50);
+  const EP = posStronger ? [e[0] * 3, e[1] * 3] : e, EN = posStronger ? other : [other[0] * 3, other[1] * 3];
+  const lp = posStronger ? Lw * longer : Lw, ln = posStronger ? Lw : Lw * longer;
+  const up = [EP[0] / len(EP), EP[1] / len(EP)], un = [EN[0] / len(EN), EN[1] / len(EN)];
+  return judgeForce(EP, EN, [turn([up[0] * lp, up[1] * lp], pa), turn([un[0] * ln, un[1] * ln], na)]);
 }
 
 function rod() {

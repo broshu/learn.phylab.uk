@@ -146,35 +146,56 @@ function coulomb() {
   };
 }
 
-// ---------- 4 · force on a charge in a field ----------
+// ---------- 4 · forces in a field that varies from place to place ----------
 function forceInField() {
-  const phi = pick([0, 30, 60, 120, 150, 180, 210, 240, 300, 330]);
-  const e = [Math.cos(rad(phi)), Math.sin(rad(phi))];
-  const spots = [{ p: [3.4, 2.7], sign: 1, name: "proton" }, { p: [8.6, 2.7], sign: -1, name: "electron" }];
+  // The field of two charges that sit outside the picture: the student sees only the field arrows.
+  let src, E, strong, weak;
+  const fieldAt = (x, y) => src.reduce((e, c) => { const dx = x - c.x, dy = y - c.y, d = Math.hypot(dx, dy); return [e[0] + (c.q * dx) / d ** 3, e[1] + (c.q * dy) / d ** 3]; }, [0, 0]);
+  for (;;) {
+    const flip = pick([1, -1]);
+    src = [{ x: -1.6, y: 0.5 + Math.random() * 6, q: flip * (1 + Math.random()) }, { x: 13.6, y: 0.5 + Math.random() * 6, q: -flip * (0.6 + Math.random()) }];
+    const nodes = [];
+    for (let x = 2; x <= 10; x++) for (let y = 2; y <= 5; y++) nodes.push({ p: [x, y], e: fieldAt(x, y) });
+    const pairs = [];
+    for (const a of nodes) for (const b of nodes) {
+      const k = len(a.e) / len(b.e);
+      if (k >= 2.6 && k <= 5 && between(a.e, b.e) >= 25 && len(sub(a.p, b.p)) >= 4.5) pairs.push([a, b]);
+    }
+    if (!pairs.length) continue;
+    [strong, weak] = pick(pairs); E = fieldAt;
+    break;
+  }
+  // drawn length of a field arrow: proportional to the field strength, so the difference between the two points is plain to see
+  const shown = (e) => Math.max(0.14, Math.min(0.9, (0.8 * len(e)) / len(strong.e)));
+  const posAtStrong = pick([true, false]);
+  const spots = [{ ...(posAtStrong ? strong : weak), sign: 1 }, { ...(posAtStrong ? weak : strong), sign: -1 }];
+  const unit = (e) => [e[0] / len(e), e[1] / len(e)];
   let tips;
   return {
-    id: "force", topic: "Force on a charge in an electric field", w: 12, h: 7, grid: false,
-    prompt: `The electric field ${V("E")} is the same at the two marked points; the grey arrows show it. A proton is at one point and an electron at the other. Drag from each particle to draw the electric force on it.`,
+    id: "force", topic: "Forces on charges in an electric field", w: 12, h: 7, grid: false,
+    prompt: `The grey arrows show the electric field in a region; a longer arrow means a stronger field. A particle with charge ${M("<mo>+</mo><mi>q</mi>")} sits at one marked point and a particle with charge ${M("<mo>&#x2212;</mo><mi>q</mi>")} at the other. Drag from each particle to draw the electric force on it. What counts is that each direction is roughly right and that the larger force is clearly the longer arrow.`,
     setup(b) { tips = spots.map((s) => b.addHandle({ x: s.p[0], y: s.p[1] })); },
     paint(b, ctx, review) {
+      for (let x = 1; x <= 11; x++) for (let y = 1; y <= 6; y++) {
+        if (spots.some((s) => s.p[0] === x && s.p[1] === y)) continue; // no field arrow where a particle sits
+        const e = E(x, y), u = unit(e), h = shown(e) / 2;
+        draw(b, ctx, [x - u[0] * h, y - u[1] * h], [x + u[0] * h, y + u[1] * h], "#a9b1c0", 2);
+      }
       spots.forEach((s, i) => {
-        const c = [s.p[0], 5.5], h = 0.9;
-        draw(b, ctx, [c[0] - e[0] * h, c[1] - e[1] * h], [c[0] + e[0] * h, c[1] + e[1] * h], SOFT, 4);
-        const [lx, ly] = b.px(c[0] - e[1] * 0.45, c[1] + e[0] * 0.45); symbol(ctx, [{ t: "E", vec: true }], lx, ly + 6, SOFT, 17);
-        if (review) { const L = Math.max(0.9, Math.min(1.6, len(sub([tips[0].x, tips[0].y], spots[0].p)) || 1.3)); draw(b, ctx, s.p, [s.p[0] + s.sign * e[0] * L, s.p[1] + s.sign * e[1] * L], RIGHT, 3.5); }
+        const u = unit(s.e), L = s === spots.find((t) => t.p === strong.p) ? 1.5 : 0.8;
+        if (review) draw(b, ctx, s.p, [s.p[0] + s.sign * u[0] * L, s.p[1] + s.sign * u[1] * L], RIGHT, 3.5);
         if (len(sub([tips[i].x, tips[i].y], s.p)) > 0.1) draw(b, ctx, s.p, [tips[i].x, tips[i].y], MINE, 3.5);
         const [x, y] = b.px(...s.p);
         charge(ctx, x, y, s.sign, 11);
-        ctx.fillStyle = INK; ctx.font = "600 14px -apple-system, Arial, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillText(s.name, x, b.px(0, 0.45)[1]);
+        symbol(ctx, [{ t: s.sign > 0 ? "+" : "\u2212", plain: true }, { t: "q" }], x + 24, y + 26, INK, 16);
       });
     },
-    solve() { tips.forEach((t, i) => { t.x = spots[i].p[0] + spots[i].sign * e[0] * 1.3; t.y = spots[i].p[1] + spots[i].sign * e[1] * 1.3; }); },
+    solve() { tips.forEach((t, i) => { const s = spots[i], u = unit(s.e), L = s.p === strong.p ? 1.5 : 0.8; t.x = s.p[0] + s.sign * u[0] * L; t.y = s.p[1] + s.sign * u[1] * L; }); },
     ready: () => tips.every((t, i) => len(sub([t.x, t.y], spots[i].p)) > 0.25),
-    judge: () => judgeForce(phi, e, tips.map((t, i) => sub([t.x, t.y], spots[i].p))),
+    judge: () => judgeForce(spots[0].e, spots[1].e, tips.map((t, i) => sub([t.x, t.y], spots[i].p))),
     review: () => `<p>A charge ${M("<mi>q</mi>")} at a point where the field is ${V("E")} feels the force</p>
       <math display="block"><mover><mi>F</mi><mo>&#x2192;</mo></mover><mo>=</mo><mi>q</mi><mover><mi>E</mi><mo>&#x2192;</mo></mover></math>
-      <p>For a positive charge the force is along the field; for a negative charge it is opposite to the field. A proton and an electron carry charges of the same size, so in the same field the two forces are equally strong.</p>`,
+      <p>Only the field at the particle's own position matters. The force on a positive charge is along that field; the force on a negative charge is opposite to it. The two charges here have the same size, so the larger force is on the one sitting where the field is stronger, whatever its sign.</p>`,
   };
 }
 

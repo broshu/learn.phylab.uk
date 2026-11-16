@@ -15,8 +15,8 @@ const QUESTIONS = [
     how: "Drawn as if the charge were positive for everyone. Arrow lengths are relative to each student's own arrow at point 1, so only the pattern matters. Dark green: the correct arrows.", view: [-2.1, 4.1, -2.3, 2.3], paint: paintPointField },
   { id: "coulomb", title: "Coulomb's law", task: "One sphere loses half its charge. Move it so that the force is the same as before.",
     how: "Each dot is where one student put the sphere, as a fraction of the original distance. The shaded band is what counts as correct.", view: [0.3, 1.32, -0.13, 0.4], paint: paintCoulomb },
-  { id: "force", title: "Force on a charge in an electric field", task: "Draw the electric force on a proton and on an electron in the same field.",
-    how: "Each answer is turned so that the field points to the right. Arrow lengths are relative to each student's own arrow on the proton.", view: [-3.2, 3.2, -1.7, 2.1], paint: paintForce },
+  { id: "force", title: "Forces on charges in an electric field", task: "A field that varies from place to place; draw the force on a positive and on a negative charge of the same size at two points.",
+    how: "Each arrow is turned so that the correct direction of its force points to the right; an arrow pointing left has the wrong sign. Lengths are relative to each student's arrow at the weaker-field point, so the arrows on the right should be clearly longer.", view: [-3.4, 3.4, -1.7, 2.2], paint: paintForce },
   { id: "rod", title: "The pull of a rod: adding up small pieces", task: "Gravity twin of the charged rod treated in class: pull of one piece, of a symmetric pair, the integral, and the size of the result.", custom: renderRod },
 ];
 
@@ -135,19 +135,18 @@ function paintCoulomb(answers) {
 
 // ---------- 4 · force in a field ----------
 function paintForce(answers) {
-  const spots = [{ x: -1.55, sign: 1, name: "proton", key: "proton" }, { x: 1.55, sign: -1, name: "electron", key: "electron" }], unit = 1.05;
+  const spots = [{ x: -1.9, key: "weak", name: "where the field is weaker", field: 0.55 }, { x: 1.1, key: "strong", name: "where the field is stronger", field: 1.3 }], unit = 0.8;
   return ({ ctx, px }) => {
-    arrow(ctx, ...px(-0.9, 1.55), ...px(0.9, 1.55), SOFT, 4);
-    symbol(ctx, [{ t: "E", vec: true }], ...((p) => [p[0], p[1] - 9])(px(0, 1.55)), SOFT, 16);
     for (const s of spots) {
+      arrow(ctx, ...px(s.x, 1.5), ...px(s.x + s.field, 1.5), SOFT, 3.5);
       for (const a of [...answers].sort((p, q) => p.mine - q.mine)) {
-        const ar = a.r.norm[s.key], l = Math.min(1.5, ar.l * unit), t = rad(ar.a);
+        const ar = a.r.norm[s.key], l = Math.min(2, ar.l * unit), t = rad(ar.a);
         thin(ctx, px(s.x, 0), px(s.x + l * Math.cos(t), l * Math.sin(t)), a.r, a);
       }
-      arrow(ctx, ...px(s.x, 0), ...px(s.x + s.sign * unit, 0), "#063f38", 3.2);
-      charge(ctx, ...px(s.x, 0), s.sign, 10);
-      label(ctx, s.name, px(s.x, 0)[0], px(0, -1.45)[1], INK);
+      const [x, y] = px(s.x, 0); ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill();
+      label(ctx, s.name, px(s.x + 0.5, 0)[0], px(0, -1.45)[1], INK);
     }
+    label(ctx, "correct direction of the force", px(-0.2, 0)[0], px(0, 1.95)[1], SOFT);
   };
 }
 

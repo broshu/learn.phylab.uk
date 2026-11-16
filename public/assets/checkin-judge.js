@@ -24,7 +24,8 @@ export const LIMITS = {
   // far point: the arrow only has to be less than half as long as at the near point
   pointField: { angle: 20, farHigh: 0.5, sameLow: 0.6, sameHigh: 1.67 },
   coulomb: { low: 0.62, high: 0.8 },
-  force: { angle: 25, lengthLow: 0.5, lengthHigh: 2 },
+  // the force where the field is clearly stronger only has to be drawn clearly longer
+  force: { angle: 30, longer: 1.25 },
   rod: { angle: 15, sumLow: 0.6, sumHigh: 1.5, ratio: 0.08 },
 };
 
@@ -95,25 +96,32 @@ export function judgeCoulomb(r0, r) {
   };
 }
 
-/** 4 · force on a proton and an electron; e = unit vector of the field, v = [arrow on proton, arrow on electron]. */
-export function judgeForce(phi, e, v) {
+/**
+ * 4 · forces on a positive and a negative charge (same size of charge) at two points of a field that varies.
+ * EP, EN: the field at the positive and at the negative charge; v = [arrow on the positive, arrow on the negative].
+ */
+export function judgeForce(EP, EN, v) {
   const L = LIMITS.force, flip = 180 - L.angle;
-  const proton = between(v[0], e), electron = between(v[1], [-e[0], -e[1]]), ratio = len(v[1]) / len(v[0]);
-  const lengthOk = ratio >= L.lengthLow && ratio <= L.lengthHigh;
-  const ok = proton <= L.angle && electron <= L.angle && lengthOk;
+  const pos = between(v[0], EP), neg = between(v[1], [-EN[0], -EN[1]]);
+  const posStronger = len(EP) > len(EN);
+  const ratio = posStronger ? len(v[0]) / len(v[1]) : len(v[1]) / len(v[0]); // drawn force where the field is stronger ÷ where it is weaker
+  const dirOk = pos <= L.angle && neg <= L.angle;
+  const ok = dirOk && ratio >= L.longer;
   let error = null;
   if (!ok) {
-    if (proton <= L.angle && electron >= flip) error = "Force on the electron drawn along the field (should be opposite)";
-    else if (proton >= flip && electron <= L.angle) error = "Force on the proton drawn against the field";
-    else if (proton >= flip && electron >= flip) error = "Both forces reversed";
-    else if (proton <= L.angle && electron <= L.angle) error = ratio < L.lengthLow ? "Force on the electron drawn much smaller than on the proton" : "Force on the electron drawn much larger than on the proton";
-    else error = "A force not along the line of the field";
+    if (pos <= L.angle && neg >= flip) error = "Force on the negative charge drawn along the field (should be opposite)";
+    else if (pos >= flip && neg <= L.angle) error = "Force on the positive charge drawn against the field";
+    else if (pos >= flip && neg >= flip) error = "Both forces reversed";
+    else if (!dirOk) error = "A force not along the field at that point";
+    else if (ratio < 1 / L.longer) error = "Larger force drawn where the field is weaker";
+    else error = "The two forces drawn about equally strong, although the field strengths differ";
   }
+  // common frame: each arrow turned so that its correct direction is +x; length 1 where the field is weaker
+  const aPos = signedAngle(EP, v[0]), aNeg = signedAngle([-EN[0], -EN[1]], v[1]);
   return {
     ok, error,
-    data: { fieldDirectionDegrees: phi, protonOffDegrees: round(proton, 0), electronOffDegrees: round(electron, 0), electronToProtonLength: round(ratio) },
-    // angles measured from the field direction; lengths relative to the arrow on the proton
-    norm: { proton: { a: round(signedAngle(e, v[0]), 1), l: 1 }, electron: { a: round(signedAngle(e, v[1]), 1), l: round(ratio, 3) } },
+    data: { fieldStrengthRatio: round(Math.max(len(EP), len(EN)) / Math.min(len(EP), len(EN)), 1), strongerFieldAt: posStronger ? "positive charge" : "negative charge", positiveOffDegrees: round(pos, 0), negativeOffDegrees: round(neg, 0), strongerToWeakerLength: round(ratio) },
+    norm: { weak: { a: round(posStronger ? aNeg : aPos, 1), l: 1 }, strong: { a: round(posStronger ? aPos : aNeg, 1), l: round(ratio, 3) } },
   };
 }
 
