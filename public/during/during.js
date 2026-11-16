@@ -1,6 +1,6 @@
 // learn.phylab.uk — In class (/during/): 1 draw field lines (automatic check), 2 peer feedback, 3 3D match (AR on the tablet).
 // Same demonstration layout as Before class: student on the left, teacher back end on the right.
-import { openRecord } from "/assets/record.js";
+import { openRecord, resetButton } from "/assets/record.js";
 import { startDraw } from "/during/draw.js";
 import { startPeer } from "/during/peer.js";
 
@@ -24,3 +24,4 @@ document.querySelectorAll("[data-next]").forEach((b) => b.addEventListener("clic
 startDraw({ student: $("drawStudent"), teacher: $("drawTeacher"), rec });
 startPeer({ student: $("peerStudent"), teacher: $("peerTeacher"), rec });
 show(state.step, true);
+resetButton(document.getElementById("resetDemo"));

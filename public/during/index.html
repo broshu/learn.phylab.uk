@@ -41,6 +41,9 @@
   .role.t { background: var(--accent); }
   .solo-head .tcol { visibility: hidden; }
   .steps .tcol a { flex: none; }
+  .steps .tcol .reset { flex: none; margin-left: auto; appearance: none; background: #fff; border: 1px solid #b9c0cc; border-radius: 6px; padding: 2px 9px; font: 600 0.78rem var(--sans); color: var(--ink-soft); cursor: pointer; }
+  .steps .tcol .reset:hover { color: var(--ink); border-color: var(--ink-soft); }
+  .steps .tcol .reset.armed { background: var(--pos); border-color: var(--pos); color: #fff; }
   /* each question's drawing is kept short enough that the question and its drawing fit on the screen together */
   .q .fieldbox { margin-left: auto; margin-right: auto; }
 
@@ -108,7 +111,7 @@
     <li><button type="button" data-go="peer"><b>2</b><span>Peer feedback</span></button></li>
     <li><button type="button" data-go="ar"><b>3</b><span>3D match</span></button></li>
   </ol></div>
-    <div class="tcol"><span class="role t">Teacher back end</span><span class="txt">hidden from students</span><a href="/teacher/" target="_blank" rel="noopener">full page</a></div>
+    <div class="tcol"><span class="role t">Teacher back end</span><span class="txt">hidden from students</span><a href="/teacher/" target="_blank" rel="noopener">full page</a><button type="button" class="reset" id="resetDemo" title="Clear the answers saved in this browser and start again">Reset demo</button></div>
   </div>
 </div></nav>
 

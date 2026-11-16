@@ -12,7 +12,10 @@ function read() {
   }
 }
 
+let cleared = false; // after a reset nothing more is written, so the page cannot put old answers back while it reloads
+
 function write(all) {
+  if (cleared) return;
   try {
     localStorage.setItem(KEY, JSON.stringify(all));
   } catch {
@@ -70,4 +73,28 @@ export function openRecord(part) {
     },
     raw: rec,
   };
+}
+
+/** Remove everything this site saved in this browser (all parts of the lesson). */
+export function clearAll() {
+  cleared = true;
+  try { Object.keys(localStorage).filter((k) => k.startsWith("learn.phylab.uk/")).forEach((k) => localStorage.removeItem(k)); } catch { /* nothing to clear */ }
+}
+
+/**
+ * A reset button for the demonstration, in the teacher's bar. The first click asks, the second clears
+ * this browser's answers and reloads the page at its first step.
+ */
+export function resetButton(btn) {
+  let armed = null;
+  btn.addEventListener("click", () => {
+    if (!armed) {
+      btn.textContent = "Click again to reset"; btn.classList.add("armed");
+      armed = setTimeout(() => { armed = null; btn.textContent = "Reset demo"; btn.classList.remove("armed"); }, 3000);
+      return;
+    }
+    clearTimeout(armed);
+    clearAll();
+    location.reload();
+  });
 }
