@@ -47,6 +47,19 @@
   .key { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.86rem; color: var(--ink-soft); margin: 0 0 16px; }
   .key i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; }
   @media (max-width: 800px) { .tiles { grid-template-columns: 1fr 1fr; } .qbody { grid-template-columns: 1fr; } }
+  /* embedded beside the student page */
+  body.embed .topbar, body.embed h1, body.embed .lead, body.embed footer.site { display: none; }
+  body.embed { font-size: 15px; background: #fff; }
+  body.embed main { padding: 12px 12px 4px; }
+  body.embed .card { padding: 14px; }
+  body.embed .tiles { gap: 10px; margin: 12px 0 16px; }
+  body.embed .tiles .card:last-child { grid-column: 1 / -1; }
+  body.embed .tile .big { font-size: 1.25rem; }
+  body.embed .tile .lab { font-size: 0.76rem; }
+  body.embed .qhead { flex-direction: column; gap: 2px; }
+  body.embed .qhead h2 { font-size: 1.15rem; }
+  body.embed .key { gap: 8px 14px; font-size: 0.8rem; }
+  @media (max-width: 800px) { body.embed .tiles { grid-template-columns: repeat(3, 1fr); } }
 </style>
 </head>
 <body>

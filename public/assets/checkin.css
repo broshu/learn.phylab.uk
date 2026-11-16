@@ -1,0 +1,43 @@
+/* learn.phylab.uk — styles for the interactive check-in (used by the lesson page and the reviewer page) */
+.q { margin-bottom: 18px; }
+.q .stem { margin: 0 0 14px; }
+.q .n { font-family: var(--serif); color: var(--ink-soft); margin-right: 6px; }
+.readout { margin-top: 8px; }
+.score { font-family: var(--serif); font-size: 1.3rem; margin: 0 0 6px; }
+.review { margin-top: 14px; border-left: 4px solid var(--warn); }
+.review h3 { margin-bottom: 8px; }
+.review .fieldbox { margin-top: 10px; }
+.cap { font-size: 0.88rem; color: var(--ink-soft); margin: 6px 0 0; }
+.nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 22px 0 0; }
+#recorded { margin-top: 22px; }
+details summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+table.rec { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+table.rec th, table.rec td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+table.rec code { font-size: 0.8rem; color: var(--ink-soft); word-break: break-word; }
+h3.part { margin: 26px 0 8px; padding-top: 16px; border-top: 1px solid var(--rule); font-size: 1.05rem; }
+.eq { background: #fbfaf6; border: 1px solid var(--rule); border-radius: 8px; padding: 16px 18px 12px; margin: 12px 0; overflow-x: auto; }
+.eqrow { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; white-space: nowrap; font-size: 1.1rem; }
+.blank { display: inline-flex; align-items: center; justify-content: center; min-width: 66px; min-height: 46px; padding: 2px 8px; border: 2px dashed #b9c0cc; border-radius: 8px; background: #fff; cursor: pointer; }
+.blank.lim { min-width: 54px; min-height: 40px; font-size: 0.85em; }
+.blank.filled { border-style: solid; border-color: var(--ink-soft); }
+.blank.right { border-color: var(--accent); background: var(--accent-soft); border-style: solid; }
+.blank.wrong { border-color: var(--pos); background: #fbeceb; border-style: solid; }
+.int { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.int .sign { font-family: Georgia, "Times New Roman", serif; font-size: 2.6rem; line-height: 0.9; }
+.cfrac { display: inline-flex; flex-direction: column; align-items: center; gap: 5px; }
+.cfrac > span:first-child { padding: 0 10px 5px; border-bottom: 1.6px solid var(--ink); align-self: stretch; text-align: center; }
+.eqnote { display: flex; gap: 26px; font-size: 0.8rem; color: var(--ink-soft); padding-left: 112px; white-space: nowrap; }
+.cards { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; min-height: 54px; }
+.tile { font: inherit; font-size: 1.05rem; min-width: 58px; min-height: 46px; padding: 2px 12px; background: #fff; border: 1.5px solid var(--ink-soft); border-radius: 8px; cursor: grab; touch-action: none; color: var(--ink); }
+.tile.held { border-color: #d98200; box-shadow: 0 0 0 3px rgba(217,130,0,0.25); }
+.tile.ghost { position: fixed; z-index: 50; pointer-events: none; transform: translate(-50%, -50%); box-shadow: 0 6px 18px rgba(0,0,0,0.2); }
+.sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 12px 0 6px; font-size: 0.93rem; }
+.sliders label { display: flex; flex-direction: column; gap: 4px; }
+.sliders input { width: 100%; accent-color: var(--accent); }
+.review .fieldbox, .q .fieldbox { max-width: 100%; }
+@media (max-width: 600px) {
+  .eqrow { flex-wrap: wrap; row-gap: 12px; }
+  .eqnote { padding-left: 0; flex-direction: column; gap: 2px; white-space: normal; }
+  .sliders { grid-template-columns: 1fr; }
+  .card { padding: 16px; }
+}

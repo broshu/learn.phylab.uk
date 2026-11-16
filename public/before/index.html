@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Before class · The Electric Field of Point Charges · learn.phylab.uk</title>
 <link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/checkin.css">
 <style>
   .steps { position: sticky; top: 0; z-index: 5; background: var(--paper); border-bottom: 1px solid var(--rule); }
   .steps ol { list-style: none; margin: 0; padding: 10px 0; display: flex; gap: 6px; }
@@ -20,11 +21,6 @@
   .nav { display: flex; justify-content: space-between; gap: 12px; margin: 28px 0 0; }
 
   /* check-in */
-  .q { margin-bottom: 18px; }
-  .q .stem { display: flex; gap: 18px; align-items: flex-start; }
-  .q .stem p { flex: 1; margin: 0 0 12px; }
-  .q svg.fig { flex: none; width: 170px; height: 100px; }
-  .q .n { font-family: var(--serif); color: var(--ink-soft); margin-right: 6px; }
   .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .choice { text-align: left; font: inherit; background: #fff; border: 1.5px solid var(--rule); border-radius: 8px; padding: 9px 12px; cursor: pointer; color: var(--ink); }
   .choice:hover { border-color: var(--ink-soft); }
@@ -32,9 +28,6 @@
   .choice:disabled { cursor: default; opacity: 0.85; }
   .choice.right { border-color: var(--accent); background: var(--accent-soft); }
   .choice.wrong { border-color: var(--pos); background: #fbeceb; }
-  .score { font-family: var(--serif); font-size: 1.3rem; margin: 0 0 6px; }
-  .review { margin-top: 14px; border-left: 4px solid var(--warn); }
-  .review h3 { margin-bottom: 6px; }
 
   /* module */
   .part { margin-bottom: 22px; }
@@ -67,9 +60,25 @@
   table.rec th { width: 34%; font-weight: 600; }
   details summary { cursor: pointer; font-weight: 600; }
 
+  /* demonstration layout: the student's page on the left, what the teacher sees on the right */
+  .topbar .wrap, .steps .wrap { max-width: 1420px; }
+  .demo { display: grid; grid-template-columns: minmax(0, 1fr) 430px; gap: 26px; max-width: 1420px; margin: 0 auto; padding: 0 20px; align-items: start; }
+  .demo > main { min-width: 0; }
+  .side { position: sticky; top: 58px; padding-top: 22px; }
+  .side .head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .side .head strong { font-family: var(--serif); font-size: 1.15rem; }
+  .side .head a { font-size: 0.85rem; white-space: nowrap; }
+  .side p.what { font-size: 0.86rem; color: var(--ink-soft); margin: 0 0 10px; }
+  .side iframe { display: block; width: 100%; height: calc(100vh - 170px); min-height: 420px; border: 1px solid var(--rule); border-radius: var(--radius); background: #fff; }
+  .role { display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #fff; background: var(--ink-soft); border-radius: 5px; padding: 2px 7px; margin-right: 8px; vertical-align: 2px; }
+  .role.t { background: var(--accent); }
+  @media (max-width: 1080px) {
+    .demo { grid-template-columns: 1fr; }
+    .side { position: static; }
+    .side iframe { height: 80vh; }
+  }
   @media (max-width: 640px) {
     .choices, .task .choices, .part .cols { grid-template-columns: 1fr; }
-    .q .stem { flex-direction: column; }
     .steps li span { display: none; }
   }
 </style>
@@ -88,17 +97,26 @@
   <li><b>5</b><span>Ask</span></li>
 </ol></div></nav>
 
-<main class="wrap">
+<div class="demo">
+<main>
 
 <!-- 1 · CHECK-IN -->
 <section class="step" id="s-check">
-  <h1>Check-in</h1>
-  <p class="intro">Four quick questions on what this lesson builds on. They do not count toward any grade. If something has slipped, you get a short refresher before moving on.</p>
-  <div id="questions"></div>
-  <div id="checkResult"></div>
+  <h1><span class="role">Student</span>Check-in</h1>
+  <p class="intro">Five questions on what this lesson builds on, from quick to demanding. You answer by dragging. They do not count toward any grade, and you can submit without answering all of them. If something has slipped, you get a short refresher before moving on.</p>
+  <div id="items"></div>
   <div class="nav">
     <a class="btn ghost" href="/">Home</a>
-    <button class="btn" id="checkSubmit" disabled>Submit answers</button>
+    <span>
+      <span class="muted small" id="left" style="margin-right:10px"></span>
+      <button class="btn" id="submit">Submit answers</button>
+      <button class="btn ghost" id="again" hidden>Try again with new numbers</button>
+    </span>
+  </div>
+  <div id="result" style="margin-top:22px"></div>
+  <div class="nav" id="checkAfter" hidden>
+    <span></span>
+    <button class="btn" id="checkContinue">Continue to the reading</button>
   </div>
 </section>
 
@@ -300,6 +318,19 @@
   <p>Content follows Section 23.2 of R. D. Knight, <em>Physics for Scientists and Engineers: A Strategic Approach with Modern Physics</em> (5th ed.). The questions and figures on this site are written for it and are not taken from the book.</p>
 </footer>
 </main>
+
+<aside class="side" aria-label="Teacher view">
+  <div class="head"><strong><span class="role t">Teacher</span>Live view of this step</strong><a href="/teacher/" target="_blank" rel="noopener">Open full page</a></div>
+  <div id="sideCheck">
+    <p class="what">What the lecturer sees while the class does the check-in. Submit on the left and your answers appear here, outlined in black, next to a simulated class of 50.</p>
+    <iframe src="/teacher/?embed" title="Teacher view of the check-in" id="teacherFrame"></iframe>
+  </div>
+  <div id="sideOther" class="card" hidden>
+    <p style="margin:0 0 6px"><strong>Not built yet for this step.</strong></p>
+    <p class="muted small" style="margin:0">Each step of the lesson will get its own teacher view. So far it exists for the check-in.</p>
+  </div>
+</aside>
+</div>
 
 <script type="module" src="/before/before.js"></script>
 </body>

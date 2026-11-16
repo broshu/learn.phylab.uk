@@ -29,6 +29,10 @@ function everyone() {
     ...mine().map((s) => ({ ...s, mine: true })),
   ];
 }
+const NONE = { ok: false, error: "Not answered", skipped: true, norm: null, parts: null };
+/** One student's result for a question; a question that was skipped (or did not exist yet) counts as not answered. */
+const resultOf = (s, id) => s.results.find((r) => r.id === id) || NONE;
+const partOf = (r, name) => (r.parts && r.parts[name]) || { ok: false, skipped: true };
 
 // ---------- a plot: canvas with a view window in question units ----------
 function plot(canvas, view, painter) {
@@ -152,12 +156,14 @@ function paintForce(answers) {
 
 // ---------- 5 · the rod ----------
 function renderRod(box, answers, n) {
-  const part = (name) => answers.map((a) => ({ r: { ok: a.r.parts[name].ok, norm: a.r.norm }, mine: a.mine }));
-  const share = (name) => { const c = answers.filter((a) => a.r.parts[name].ok).length; return `${Math.round((c / n) * 100)}% <small>· ${c} of ${n}</small>`; };
+  const has = { piece: (m) => m.t != null, pair: (m) => !!m.pair, ratio: (m) => m.est != null };
+  const part = (name) => answers.filter((a) => a.r.norm && !partOf(a.r, name).skipped && has[name](a.r.norm)).map((a) => ({ r: { ok: partOf(a.r, name).ok, norm: a.r.norm }, mine: a.mine }));
+  const share = (name) => { const c = answers.filter((a) => partOf(a.r, name).ok).length; return `${Math.round((c / n) * 100)}% <small>· ${c} of ${n}</small>`; };
+  const filled = answers.filter((a) => a.r.norm && !partOf(a.r, "integral").skipped);
   const NAMES = { dm: "Mass of a small piece", dist: "Distance squared", factor: "Factor toward the rod", lower: "Lower limit", upper: "Upper limit" };
   const rows = Object.keys(ROD_KEY).map((key) => {
-    const right = answers.filter((a) => a.r.norm.blanks[key] === ROD_KEY[key]).length, wrong = {};
-    answers.forEach((a) => { const c = a.r.norm.blanks[key]; if (c !== ROD_KEY[key]) wrong[c] = (wrong[c] || 0) + 1; });
+    const right = filled.filter((a) => a.r.norm.blanks[key] === ROD_KEY[key]).length, wrong = {};
+    filled.forEach((a) => { const c = a.r.norm.blanks[key]; if (c && c !== ROD_KEY[key]) wrong[c] = (wrong[c] || 0) + 1; });
     const top = Object.entries(wrong).sort((p, q) => q[1] - p[1])[0];
     return `<tr><td>${NAMES[key]}</td><td class="card-cell">${cardHtml(ROD_KEY[key])}</td><td class="n">${Math.round((right / n) * 100)}%</td><td class="card-cell">${top ? cardHtml(top[0]) : "—"}</td><td class="n">${top ? top[1] : ""}</td></tr>`;
   }).join("");
@@ -213,11 +219,11 @@ function render() {
     : "Answer the check-in yourself and your submission is added here, outlined in black.";
   $("clearMine").hidden = !own;
 
-  const scores = all.map((s) => s.results.filter((r) => r.ok).length);
+  const scores = all.map((s) => QUESTIONS.filter((q) => resultOf(s, q.id).ok).length);
   const mean = scores.reduce((a, b) => a + b, 0) / n;
   const times = all.map((s) => s.seconds).filter((t) => t != null).sort((a, b) => a - b), median = times[Math.floor(times.length / 2)];
   const counts = QUESTIONS.map((_, k) => k).concat(QUESTIONS.length).map((k) => scores.filter((s) => s === k).length), most = Math.max(...counts);
-  const rate = (id) => all.filter((s) => s.results.find((r) => r.id === id).ok).length / n;
+  const rate = (id) => all.filter((s) => resultOf(s, id).ok).length / n;
   const weakest = [...QUESTIONS].sort((a, b) => rate(a.id) - rate(b.id))[0];
   $("tiles").innerHTML = `
     <div class="card tile"><div class="big">${n}</div><div class="lab">students<br>${sample.students.length} simulated${own ? ` + ${own} from this browser` : ""}</div></div>
@@ -227,7 +233,7 @@ function render() {
       <div class="dist">${counts.map((c, k) => `<div><b>${c}</b><i style="height:${Math.round((c / most) * 44)}px"></i>${k} right</div>`).join("")}</div></div>`;
 
   $("questions").innerHTML = QUESTIONS.map((q, i) => {
-    const rs = all.map((s) => s.results.find((r) => r.id === q.id));
+    const rs = all.map((s) => resultOf(s, q.id));
     const right = rs.filter((r) => r.ok).length;
     const errors = {};
     rs.filter((r) => !r.ok).forEach((r) => { errors[r.error] = (errors[r.error] || 0) + 1; });
@@ -245,11 +251,14 @@ function render() {
   }).join("");
 
   for (const q of QUESTIONS) {
-    const answers = all.map((s) => ({ r: s.results.find((r) => r.id === q.id), mine: s.mine }));
+    const answers = all.map((s) => ({ r: resultOf(s, q.id), mine: s.mine }));
     if (q.custom) q.custom($("custom-" + q.id), answers, n);
-    else plot($("plot-" + q.id), q.view, q.paint(answers));
+    else plot($("plot-" + q.id), q.view, q.paint(answers.filter((a) => a.r.norm))); // unanswered questions have nothing to draw
   }
 }
 
 $("clearMine").addEventListener("click", () => { localStorage.removeItem(STORE); render(); });
+// shown beside the student page in the demonstration: redraw as soon as a check-in is submitted there
+if (new URLSearchParams(location.search).has("embed")) document.body.classList.add("embed");
+window.addEventListener("storage", (e) => { if (e.key === STORE || e.key === null) render(); });
 render();

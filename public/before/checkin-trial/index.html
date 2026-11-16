@@ -6,74 +6,36 @@
 <meta name="robots" content="noindex">
 <title>Check-in (trial) · learn.phylab.uk</title>
 <link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/checkin.css">
 <style>
   main { padding: 30px 20px 10px; }
   .intro { color: var(--ink-soft); max-width: 62ch; margin: 10px 0 22px; }
-  .q { margin-bottom: 18px; }
-  .q .stem { margin: 0 0 14px; }
-  .q .n { font-family: var(--serif); color: var(--ink-soft); margin-right: 6px; }
-  .readout { margin-top: 8px; }
-  .score { font-family: var(--serif); font-size: 1.3rem; margin: 0 0 6px; }
-  .review { margin-top: 14px; border-left: 4px solid var(--warn); }
-  .review h3 { margin-bottom: 8px; }
-  .review .fieldbox { margin-top: 10px; }
-  .cap { font-size: 0.88rem; color: var(--ink-soft); margin: 6px 0 0; }
-  .nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 22px 0 0; }
-  #recorded { margin-top: 22px; }
-  details summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
-  table.rec { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
-  table.rec th, table.rec td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
-  table.rec code { font-size: 0.8rem; color: var(--ink-soft); word-break: break-word; }
-  h3.part { margin: 26px 0 8px; padding-top: 16px; border-top: 1px solid var(--rule); font-size: 1.05rem; }
-  .eq { background: #fbfaf6; border: 1px solid var(--rule); border-radius: 8px; padding: 16px 18px 12px; margin: 12px 0; overflow-x: auto; }
-  .eqrow { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; white-space: nowrap; font-size: 1.1rem; }
-  .blank { display: inline-flex; align-items: center; justify-content: center; min-width: 66px; min-height: 46px; padding: 2px 8px; border: 2px dashed #b9c0cc; border-radius: 8px; background: #fff; cursor: pointer; }
-  .blank.lim { min-width: 54px; min-height: 40px; font-size: 0.85em; }
-  .blank.filled { border-style: solid; border-color: var(--ink-soft); }
-  .blank.right { border-color: var(--accent); background: var(--accent-soft); border-style: solid; }
-  .blank.wrong { border-color: var(--pos); background: #fbeceb; border-style: solid; }
-  .int { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
-  .int .sign { font-family: Georgia, "Times New Roman", serif; font-size: 2.6rem; line-height: 0.9; }
-  .cfrac { display: inline-flex; flex-direction: column; align-items: center; gap: 5px; }
-  .cfrac > span:first-child { padding: 0 10px 5px; border-bottom: 1.6px solid var(--ink); align-self: stretch; text-align: center; }
-  .eqnote { display: flex; gap: 26px; font-size: 0.8rem; color: var(--ink-soft); padding-left: 112px; white-space: nowrap; }
-  .cards { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; min-height: 54px; }
-  .tile { font: inherit; font-size: 1.05rem; min-width: 58px; min-height: 46px; padding: 2px 12px; background: #fff; border: 1.5px solid var(--ink-soft); border-radius: 8px; cursor: grab; touch-action: none; color: var(--ink); }
-  .tile.held { border-color: #d98200; box-shadow: 0 0 0 3px rgba(217,130,0,0.25); }
-  .tile.ghost { position: fixed; z-index: 50; pointer-events: none; transform: translate(-50%, -50%); box-shadow: 0 6px 18px rgba(0,0,0,0.2); }
-  .sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 12px 0 6px; font-size: 0.93rem; }
-  .sliders label { display: flex; flex-direction: column; gap: 4px; }
-  .sliders input { width: 100%; accent-color: var(--accent); }
-  .review .fieldbox, .q .fieldbox { max-width: 100%; }
-  @media (max-width: 600px) {
-    .eqrow { flex-wrap: wrap; row-gap: 12px; }
-    .eqnote { padding-left: 0; flex-direction: column; gap: 2px; white-space: normal; }
-    .sliders { grid-template-columns: 1fr; }
-    .card { padding: 16px; }
-  }
 </style>
 </head>
 <body>
 <header class="topbar"><div class="wrap">
   <a class="brand" href="/">learn<span>.phylab.uk</span></a>
-  <span class="where">Trial page · not yet part of the lesson</span>
+  <span class="where">Reviewer page for the check-in</span>
 </div></header>
 
 <main class="wrap">
   <h1>Check-in</h1>
-  <p class="intro">Five questions on what this lesson builds on, from quick to demanding. You answer by dragging. They do not count toward any grade; if something has slipped, you get a short refresher before moving on.</p>
+  <p class="intro">Five questions on what this lesson builds on, from quick to demanding. You answer by dragging. They do not count toward any grade, and you can submit without answering all of them. This copy of the check-in adds a table of what is recorded and a button that fills in correct answers.</p>
   <div id="items"></div>
   <div class="nav">
     <span class="muted small" id="left"></span>
     <span>
-      <button class="btn" id="submit" disabled>Submit answers</button>
+      <button class="btn" id="submit">Submit answers</button>
       <button class="btn ghost" id="again" hidden>Try again with new numbers</button>
     </span>
   </div>
   <div id="result" style="margin-top:22px"></div>
   <div id="recorded"></div>
-  <footer class="site"><p>Trial of an interactive check-in. Each question is drawn with different numbers every time the page loads.</p><p><button class="btn small ghost" id="fill">Reviewer only: fill in correct answers</button></p></footer>
+  <footer class="site"><p>The check-in itself is the first step of <a href="/before/">Before class</a>. Each question is drawn with different numbers every time the page loads.</p><p><button class="btn small ghost" id="fill">Reviewer only: fill in correct answers</button></p></footer>
 </main>
-<script type="module" src="/before/checkin-trial/trial.js"></script>
+<script type="module">
+  import { startCheckin } from "/before/checkin.js";
+  startCheckin({ reviewer: true });
+</script>
 </body>
 </html>

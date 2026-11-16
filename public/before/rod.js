@@ -209,7 +209,11 @@ export function rodGravity() {
   return {
     id: "rod", topic: "The pull of a rod: adding up small pieces", custom: true, mount,
     ready: () => lockedA && len(sub([tipB.x, tipB.y], ball)) > 0.3 && Object.values(blanks).every(Boolean) && mark.touched,
-    judge: () => judgeRod({ ratio, toPiece, toCentre, pulls }, { va: sub([tipA.x, tipA.y], ball), vb: sub([tipB.x, tipB.y], ball), blanks: { ...blanks }, est: +est().toFixed(3) }),
+    judge: () => judgeRod({ ratio, toPiece, toCentre, pulls }, {
+      va: len(sub([tipA.x, tipA.y], ball)) > 0.4 ? sub([tipA.x, tipA.y], ball) : null,
+      vb: len(sub([tipB.x, tipB.y], ball)) > 0.3 ? sub([tipB.x, tipB.y], ball) : null,
+      blanks: { ...blanks }, est: mark.touched ? +est().toFixed(3) : null,
+    }),
     lock() {
       locked = true; lockedA = true;
       for (const b of [boardA, boardB, boardC]) { b.locked = true; b.draw(); }
@@ -223,15 +227,16 @@ export function rodGravity() {
       boardC.paint = (b, ctx) => paintScale(b, ctx, true);
       for (const b of [boardA, boardB, boardC]) b.draw();
       q('[data-s="pair"]').hidden = false;
-      el.querySelectorAll(".blank").forEach((b) => b.classList.add(blanks[b.dataset.b] === ROD_KEY[b.dataset.b] ? "right" : "wrong"));
+      el.querySelectorAll(".blank").forEach((b) => { if (blanks[b.dataset.b]) b.classList.add(blanks[b.dataset.b] === ROD_KEY[b.dataset.b] ? "right" : "wrong"); });
       explore();
     },
     review: (res) => {
       const p = res.parts, lines = [];
-      if (!p.piece.ok) lines.push("<p><strong>One piece.</strong> Gravity pulls the ball toward the piece itself, along the line joining the two, not toward the middle of the rod.</p>");
-      if (!p.pair.ok) lines.push("<p><strong>Two pieces.</strong> The two pulls are equally strong and tilted by the same angle, one up and one down. Their parts along the rod cancel; what is left points straight at the rod.</p>");
-      if (!p.integral.ok) lines.push(`<p><strong>The integral.</strong> A uniform rod has mass ${D(frac("<mi>M</mi>", "<mi>L</mi>"))} per unit length, so a piece of length ${M("<mi>d</mi><mi>y</mi>")} has mass ${D(frac("<mi>M</mi>", "<mi>L</mi>"))}${M("<mi>d</mi><mi>y</mi>")}, the same step as for the centre of mass or the moment of inertia of a rod. A piece at height ${M("<mi>y</mi>")} is a distance ${D(root)} from the ball. Only the part of its pull that points at the rod survives, which is the fraction ${D(frac("<mi>r</mi>", root))}. The pieces run from ${D("<mo>&#x2212;</mo>" + frac("<mi>L</mi>", "<mn>2</mn>"))} to ${D("<mo>+</mo>" + frac("<mi>L</mi>", "<mn>2</mn>"))}.</p>`);
-      if (!p.ratio.ok) lines.push(`<p><strong>The ratio.</strong> Dividing the result by ${M("<msub><mi>F</mi><mtext>point</mtext></msub>")} leaves ${D(frac("<mi>r</mi>", "<msqrt><msup><mi>r</mi><mn>2</mn></msup><mo>+</mo><msup><mrow><mo>(</mo><mi>L</mi><mo>/</mo><mn>2</mn><mo>)</mo></mrow><mn>2</mn></msup></msqrt>"))}, which is ${k.toFixed(2)} for this rod. It is less than 1: most of the rod is farther from the ball than its centre is, and pulls partly sideways.</p>`);
+      const wrong = (x) => !x.ok && !x.skipped;
+      if (wrong(p.piece)) lines.push("<p><strong>One piece.</strong> Gravity pulls the ball toward the piece itself, along the line joining the two, not toward the middle of the rod.</p>");
+      if (wrong(p.pair)) lines.push("<p><strong>Two pieces.</strong> The two pulls are equally strong and tilted by the same angle, one up and one down. Their parts along the rod cancel; what is left points straight at the rod.</p>");
+      if (wrong(p.integral)) lines.push(`<p><strong>The integral.</strong> A uniform rod has mass ${D(frac("<mi>M</mi>", "<mi>L</mi>"))} per unit length, so a piece of length ${M("<mi>d</mi><mi>y</mi>")} has mass ${D(frac("<mi>M</mi>", "<mi>L</mi>"))}${M("<mi>d</mi><mi>y</mi>")}, the same step as for the centre of mass or the moment of inertia of a rod. A piece at height ${M("<mi>y</mi>")} is a distance ${D(root)} from the ball. Only the part of its pull that points at the rod survives, which is the fraction ${D(frac("<mi>r</mi>", root))}. The pieces run from ${D("<mo>&#x2212;</mo>" + frac("<mi>L</mi>", "<mn>2</mn>"))} to ${D("<mo>+</mo>" + frac("<mi>L</mi>", "<mn>2</mn>"))}.</p>`);
+      if (wrong(p.ratio)) lines.push(`<p><strong>The ratio.</strong> Dividing the result by ${M("<msub><mi>F</mi><mtext>point</mtext></msub>")} leaves ${D(frac("<mi>r</mi>", "<msqrt><msup><mi>r</mi><mn>2</mn></msup><mo>+</mo><msup><mrow><mo>(</mo><mi>L</mi><mo>/</mo><mn>2</mn><mo>)</mo></mrow><mn>2</mn></msup></msqrt>"))}, which is ${k.toFixed(2)} for this rod. It is less than 1: most of the rod is farther from the ball than its centre is, and pulls partly sideways.</p>`);
       return lines.join("") + `<p class="cap">On your answer above, green dashed arrows and the green marker show the correct answers, and each box is outlined green or red. Below it the picture is now a simulation you can play with.</p>`;
     },
     solve() {

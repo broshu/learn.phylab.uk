@@ -1,8 +1,9 @@
-// learn.phylab.uk — trial of an interactive check-in: four questions answered by dragging.
-// Each question tests something learned before this lesson (vectors; Chapter 22).
+// learn.phylab.uk — the interactive check-in: five questions answered by dragging.
+// Each question tests something learned before this lesson (vectors, Chapter 22, rods and integrals from mechanics).
+// Used by the lesson page (/before/) and by the reviewer page (/before/checkin-trial/).
 import { Board, arrow, symbol, charge, INK, SOFT, MINE, RIGHT } from "/assets/board.js";
 import { judgeVectors, judgePointField, judgeCoulomb, judgeForce } from "/assets/checkin-judge.js";
-import { rodGravity } from "/before/checkin-trial/rod.js";
+import { rodGravity } from "/before/rod.js";
 
 const $ = (id) => document.getElementById(id);
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
@@ -231,82 +232,94 @@ function forceInField() {
 }
 
 // ---------- the page ----------
-let items = [], results = null, startedAt = Date.now();
+/**
+ * Runs the check-in inside the current page, which must contain elements with the ids
+ * items, left, submit, again and result (and, on the reviewer page, recorded and fill).
+ * options: reviewer (show the table of what is recorded), onSubmit(summary), onRestart()
+ */
+export function startCheckin(options = {}) {
+  const { reviewer = false, onSubmit = () => {}, onRestart = () => {} } = options;
+  let items = [], results = null, startedAt = Date.now();
 
-function build() {
-  results = null; startedAt = Date.now();
-  items = [vectorSum(), pointChargeField(), coulomb(), forceInField(), rodGravity()];
-  $("items").innerHTML = items.map((it, i) => it.custom ? `<div class="card q" id="q-${it.id}"></div>` : `
-    <div class="card q" id="q-${it.id}">
-      <p class="stem"><span class="n">${i + 1}.</span>${it.prompt}</p>
-      <div class="fieldbox"><canvas id="cv-${it.id}"></canvas></div>
-      <div class="readout" id="ro-${it.id}"></div>
-    </div>`).join("");
-  items.forEach((it, i) => {
-    if (it.custom) { it.mount($("q-" + it.id), i + 1, check); return; }
-    it.board = new Board($("cv-" + it.id), {
-      w: it.w, h: it.h, grid: it.grid,
-      onChange: () => { if (it.readout) $("ro-" + it.id).textContent = it.readout(); check(); },
+  function build() {
+    results = null; startedAt = Date.now();
+    items = [vectorSum(), pointChargeField(), coulomb(), forceInField(), rodGravity()];
+    $("items").innerHTML = items.map((it, i) => it.custom ? `<div class="card q" id="q-${it.id}"></div>` : `
+      <div class="card q" id="q-${it.id}">
+        <p class="stem"><span class="n">${i + 1}.</span>${it.prompt}</p>
+        <div class="fieldbox"><canvas id="cv-${it.id}"></canvas></div>
+        <div class="readout" id="ro-${it.id}"></div>
+      </div>`).join("");
+    items.forEach((it, i) => {
+      if (it.custom) { it.mount($("q-" + it.id), i + 1, check); return; }
+      it.board = new Board($("cv-" + it.id), {
+        w: it.w, h: it.h, grid: it.grid,
+        onChange: () => { if (it.readout) $("ro-" + it.id).textContent = it.readout(); check(); },
+      });
+      it.setup(it.board); // the handles must exist before the first paint
+      it.board.paint = (b, ctx) => it.paint(b, ctx, false);
+      it.board.draw();
+      if (it.readout) $("ro-" + it.id).textContent = it.readout();
     });
-    it.setup(it.board); // the handles must exist before the first paint
-    it.board.paint = (b, ctx) => it.paint(b, ctx, false);
-    it.board.draw();
-    if (it.readout) $("ro-" + it.id).textContent = it.readout();
+    $("result").innerHTML = ""; if ($("recorded")) $("recorded").innerHTML = "";
+    $("submit").hidden = false; $("again").hidden = true;
+    check();
+  }
+
+  // Answers may be submitted at any time: an unanswered question is recorded as not answered.
+  function check() {
+    if (results) return;
+    const left = items.filter((it) => !it.ready()).length;
+    $("left").textContent = left ? `${left} of ${items.length} not fully answered. You can submit anyway.` : "";
+  }
+
+  function submit() {
+    results = items.map((it) => ({ it, ...(it.custom || it.ready() ? it.judge() : { ok: false, error: "Not answered", skipped: true, data: {}, norm: null }) }));
+    items.forEach((it) => { if (it.custom) it.lock(); else { it.board.locked = true; it.board.draw(); } });
+    const kept = results.map((r) => ({ id: r.it.id, ok: r.ok, error: r.error, skipped: !!r.skipped, norm: r.norm, parts: r.parts }));
+    try { // keep the submission in this browser, so the teacher view can show it next to the sample class
+      const all = JSON.parse(localStorage.getItem(STORE) || "[]");
+      all.push({ t: Date.now(), seconds: Math.round((Date.now() - startedAt) / 1000), results: kept });
+      localStorage.setItem(STORE, JSON.stringify(all.slice(-20)));
+    } catch { /* storage unavailable */ }
+    const right = results.filter((r) => r.ok).length, skipped = results.filter((r) => r.skipped).length;
+    const missed = results.filter((r) => !r.ok && !r.skipped);
+    $("result").innerHTML = `
+      <div class="card">
+        <p class="score">You answered ${right} of ${items.length} correctly${skipped ? ` and left ${skipped} unanswered` : ""}.</p>
+        <p class="muted" style="margin:0">${missed.length ? "Read the refresher" + (missed.length > 1 ? "s" : "") + " below. Orange is what you drew; green is the answer." : right === items.length ? "You have what this lesson builds on." : "Nothing you answered was wrong."}</p>
+      </div>
+      ${missed.map((r) => `
+        <div class="card review">
+          <span class="tag">Refresher</span><h3>${r.it.topic}</h3>
+          ${r.it.review(r)}
+          ${r.it.custom ? "" : `<div class="fieldbox"><canvas id="rv-${r.it.id}"></canvas></div>`}
+          ${r.it.legend ? `<p class="cap">${r.it.legend}</p>` : ""}
+        </div>`).join("")}`;
+    results.filter((r) => r.it.custom && !r.skipped).forEach((r) => r.it.showResult(r));
+    missed.filter((r) => !r.it.custom).forEach((r) => {
+      const b = new Board($("rv-" + r.it.id), { w: r.it.w, h: r.it.h, grid: r.it.grid, paint: (bd, ctx) => r.it.paint(bd, ctx, true) });
+      b.locked = true; b.draw();
+    });
+    if (reviewer && $("recorded")) $("recorded").innerHTML = `
+      <details open><summary>For the reviewer: what would be recorded</summary>
+      <table class="rec">
+        <tr><th>Question</th><th>Result</th><th>What the student did</th><th>Numbers kept</th></tr>
+        ${results.map((r) => `<tr><td>${r.it.topic}</td><td>${r.ok ? "Correct" : r.skipped ? "Not answered" : "Not correct"}</td><td>${r.ok || r.skipped ? "—" : r.error}</td><td><code>${JSON.stringify(r.data).replace(/[{}"]/g, "").replace(/,/g, ", ").replace(/:/g, ": ")}</code></td></tr>`).join("")}
+      </table>
+      <p class="cap">This submission now also appears in the <a href="/teacher/">teacher view</a>, next to the sample class.</p></details>`;
+    $("submit").hidden = true; $("again").hidden = false; $("left").textContent = "";
+    onSubmit({ score: right, total: items.length, skipped, missed: missed.map((r) => r.it.topic), results: kept });
+    $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  $("submit").addEventListener("click", submit);
+  $("again").addEventListener("click", () => { build(); onRestart(); $("items").scrollIntoView({ block: "start" }); });
+  // reviewer only: fill in a correct answer everywhere, to see the all-correct result
+  if ($("fill")) $("fill").addEventListener("click", () => {
+    if (results) return;
+    items.forEach((it) => { it.solve(); if (it.custom) return; it.board.draw(); if (it.readout) $("ro-" + it.id).textContent = it.readout(); });
+    check();
   });
-  $("result").innerHTML = ""; $("recorded").innerHTML = "";
-  $("submit").hidden = false; $("again").hidden = true;
-  check();
+  build();
 }
-
-function check() {
-  const left = items.filter((it) => !it.ready()).length;
-  $("submit").disabled = left > 0;
-  $("left").textContent = left ? `${left} question${left === 1 ? "" : "s"} still to answer` : "";
-}
-
-function submit() {
-  results = items.map((it) => ({ it, ...it.judge() }));
-  items.forEach((it) => { if (it.custom) it.lock(); else { it.board.locked = true; it.board.draw(); } });
-  try { // keep the submission in this browser, so the teacher view can show it next to the sample class
-    const all = JSON.parse(localStorage.getItem(STORE) || "[]");
-    all.push({ t: Date.now(), seconds: Math.round((Date.now() - startedAt) / 1000), results: results.map((r) => ({ id: r.it.id, ok: r.ok, error: r.error, norm: r.norm, parts: r.parts })) });
-    localStorage.setItem(STORE, JSON.stringify(all.slice(-20)));
-  } catch { /* storage unavailable */ }
-  const right = results.filter((r) => r.ok).length, missed = results.filter((r) => !r.ok);
-  $("result").innerHTML = `
-    <div class="card">
-      <p class="score">You answered ${right} of ${items.length} correctly.</p>
-      <p class="muted" style="margin:0">${missed.length ? "Read the refresher" + (missed.length > 1 ? "s" : "") + " below. Orange is what you drew; green is the answer." : "You have what this lesson builds on."}</p>
-    </div>
-    ${missed.map((r) => `
-      <div class="card review">
-        <span class="tag">Refresher</span><h3>${r.it.topic}</h3>
-        ${r.it.review(r)}
-        ${r.it.custom ? "" : `<div class="fieldbox"><canvas id="rv-${r.it.id}"></canvas></div>`}
-        ${r.it.legend ? `<p class="cap">${r.it.legend}</p>` : ""}
-      </div>`).join("")}`;
-  results.filter((r) => r.it.custom).forEach((r) => r.it.showResult(r));
-  missed.filter((r) => !r.it.custom).forEach((r) => {
-    const b = new Board($("rv-" + r.it.id), { w: r.it.w, h: r.it.h, grid: r.it.grid, paint: (bd, ctx) => r.it.paint(bd, ctx, true) });
-    b.locked = true; b.draw();
-  });
-  $("recorded").innerHTML = `
-    <details open><summary>For the reviewer: what would be recorded</summary>
-    <table class="rec">
-      <tr><th>Question</th><th>Result</th><th>What the student did</th><th>Numbers kept</th></tr>
-      ${results.map((r) => `<tr><td>${r.it.topic}</td><td>${r.ok ? "Correct" : "Not correct"}</td><td>${r.ok ? "—" : r.error}</td><td><code>${JSON.stringify(r.data).replace(/[{}"]/g, "").replace(/,/g, ", ").replace(/:/g, ": ")}</code></td></tr>`).join("")}
-    </table>
-    <p class="cap">This submission now also appears in the <a href="/teacher/">teacher view</a>, next to the sample class.</p></details>`;
-  $("submit").hidden = true; $("again").hidden = false; $("left").textContent = "";
-  $("result").scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-$("submit").addEventListener("click", submit);
-$("again").addEventListener("click", () => { build(); window.scrollTo(0, 0); });
-// reviewer only: fill in a correct answer everywhere, to see the all-correct result
-$("fill").addEventListener("click", () => {
-  if (results) return;
-  items.forEach((it) => { it.solve(); if (it.custom) return; it.board.draw(); if (it.readout) $("ro-" + it.id).textContent = it.readout(); });
-  check();
-});
-build();

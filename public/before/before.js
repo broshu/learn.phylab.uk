@@ -1,6 +1,7 @@
 // learn.phylab.uk — Before class: check-in, reading, simulation, prediction, one written question.
 import { FieldView, formatField } from "/assets/field.js";
 import { openRecord } from "/assets/record.js";
+import { startCheckin } from "/before/checkin.js";
 
 const rec = openRecord("before");
 const ORDER = ["check", "read", "explore", "predict", "ask", "done"];
@@ -26,6 +27,7 @@ function show(step, log = true) {
     li.classList.toggle("now", k === i);
   });
   if (step === "done") { rec.finish(); buildRecord(); }
+  $("sideCheck").hidden = step !== "check"; $("sideOther").hidden = step === "check"; // the teacher's side of the demonstration
   window.scrollTo(0, 0);
 }
 document.querySelectorAll("[data-next]").forEach((b) => b.addEventListener("click", () => show(ORDER[ORDER.indexOf(state.step) + 1])));
@@ -37,109 +39,18 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // ---------- 1 · check-in ----------
-const M = (inner) => `<math>${inner}</math>`;
-const F = M("<mi>F</mi>");
-const vec = (v) => M(`<mover><mi>${v}</mi><mo>&#x2192;</mo></mover>`);
-const QUESTIONS = [
-  {
-    id: "coulomb", topic: "Coulomb's law",
-    stem: `Two small charged spheres attract each other with a force of magnitude ${F}. The distance between their centres is then doubled. The force between them now has magnitude`,
-    choices: [["double", M("<mn>2</mn><mi>F</mi>")], ["same", F], ["half", M('<mstyle displaystyle="true"><mfrac><mi>F</mi><mn>2</mn></mfrac></mstyle>')], ["quarter", M('<mstyle displaystyle="true"><mfrac><mi>F</mi><mn>4</mn></mfrac></mstyle>')]],
-    answer: "quarter",
-    fig: `<circle cx="38" cy="50" r="13" fill="#c0392b"/><path d="M32 50h12M38 44v12" stroke="#fff" stroke-width="2.5"/><circle cx="132" cy="50" r="13" fill="#1f5fbf"/><path d="M126 50h12" stroke="#fff" stroke-width="2.5"/><path d="M38 80H132M38 74v12M132 74v12" stroke="#55607a" stroke-width="1.5"/><text x="85" y="97" text-anchor="middle" font-style="italic" font-family="Georgia,serif" font-size="15" fill="#1a2030">r</text>`,
-    review: `<p>The force between two point charges is proportional to the product of the charges and inversely proportional to the square of the distance between them:</p>
-      <math display="block"><mi>F</mi><mo>=</mo><mfrac><mn>1</mn><mrow><mn>4</mn><mi>&#x3C0;</mi><msub><mi>&#x3B5;</mi><mn>0</mn></msub></mrow></mfrac><mfrac><mrow><mo>|</mo><msub><mi>q</mi><mn>1</mn></msub><mo>|</mo><mo>|</mo><msub><mi>q</mi><mn>2</mn></msub><mo>|</mo></mrow><msup><mi>r</mi><mn>2</mn></msup></mfrac></math>
-      <p>Because of the square, changing the distance has a large effect: three times the distance gives one ninth of the force.</p>`,
+// The questions themselves live in /before/checkin.js; this page only keeps the outcome of each attempt.
+startCheckin({
+  onSubmit(summary) {
+    state.check.attempts.push({ t: Date.now(), score: summary.score, total: summary.total, skipped: summary.skipped, missed: summary.missed });
+    save();
+    rec.event("check-submit", { score: summary.score, skipped: summary.skipped });
+    $("checkAfter").hidden = false;
   },
-  {
-    id: "pointField", topic: "The field of a point charge",
-    stem: `A negative point charge is fixed in place. Point P is to the right of the charge. The electric field at P points`,
-    choices: [["left", "to the left, toward the charge"], ["right", "to the right, away from the charge"], ["up", "straight up"], ["zero", "nowhere: the field at P is zero"]],
-    answer: "left",
-    fig: `<circle cx="42" cy="50" r="13" fill="#1f5fbf"/><path d="M36 50h12" stroke="#fff" stroke-width="2.5"/><circle cx="130" cy="50" r="4" fill="#1a2030"/><text x="130" y="38" text-anchor="middle" font-family="Georgia,serif" font-size="15" fill="#1a2030">P</text>`,
-    review: `<p>The electric field of a point charge points straight away from a positive charge and straight toward a negative charge. Its strength depends only on the size of the charge and the distance from it:</p>
-      <math display="block"><mi>E</mi><mo>=</mo><mfrac><mn>1</mn><mrow><mn>4</mn><mi>&#x3C0;</mi><msub><mi>&#x3B5;</mi><mn>0</mn></msub></mrow></mfrac><mfrac><mrow><mo>|</mo><mi>q</mi><mo>|</mo></mrow><msup><mi>r</mi><mn>2</mn></msup></mfrac></math>`,
-  },
-  {
-    id: "force", topic: "Force on a charge in a field",
-    stem: `At a certain point the electric field ${vec("E")} points to the right. An electron is placed at that point. The electric force on the electron points`,
-    choices: [["right", "to the right"], ["left", "to the left"], ["perp", "at right angles to the field"], ["zero", "nowhere: the force is zero"]],
-    answer: "left",
-    fig: `<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#1a2030"/></marker></defs><path d="M30 34H138" stroke="#1a2030" stroke-width="2.5" marker-end="url(#ah)"/><text x="84" y="24" text-anchor="middle" font-style="italic" font-family="Georgia,serif" font-size="16" fill="#1a2030">E</text><circle cx="84" cy="68" r="8" fill="#1f5fbf"/><path d="M80 68h8" stroke="#fff" stroke-width="2"/><text x="84" y="94" text-anchor="middle" font-family="-apple-system,Arial,sans-serif" font-size="12" fill="#55607a">electron</text>`,
-    review: `<p>A charge ${M("<mi>q</mi>")} placed where the field is ${vec("E")} feels a force</p>
-      <math display="block"><mover><mi>F</mi><mo>&#x2192;</mo></mover><mo>=</mo><mi>q</mi><mover><mi>E</mi><mo>&#x2192;</mo></mover></math>
-      <p>For a positive charge the force is in the direction of the field. For a negative charge, such as an electron, the force is opposite to the field.</p>`,
-  },
-  {
-    id: "vectors", topic: "Adding vectors",
-    stem: `Vectors ${vec("A")} and ${vec("B")} have the same length. ${vec("A")} points up and to the right, ${vec("B")} points down and to the right, at the same angle to the horizontal. Their sum ${vec("A")} + ${vec("B")} points`,
-    choices: [["right", "to the right"], ["up", "straight up"], ["upright", "up and to the right"], ["zero", "nowhere: the sum is zero"]],
-    answer: "right",
-    fig: `<defs><marker id="ah2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#1a2030"/></marker></defs><path d="M50 50L112 14" stroke="#1a2030" stroke-width="2.5" marker-end="url(#ah2)"/><path d="M50 50L112 86" stroke="#1a2030" stroke-width="2.5" marker-end="url(#ah2)"/><path d="M50 50H150" stroke="#b8bfcc" stroke-width="1" stroke-dasharray="4 4"/><text x="124" y="16" font-style="italic" font-family="Georgia,serif" font-size="16" fill="#1a2030">A</text><text x="124" y="94" font-style="italic" font-family="Georgia,serif" font-size="16" fill="#1a2030">B</text>`,
-    review: `<p>Vectors add component by component. Split each vector into a horizontal and a vertical part, add the horizontal parts together, and add the vertical parts together.</p>
-      <p>Parts that are equal and opposite cancel. What is left gives the direction of the sum.</p>`,
-  },
-];
-
-let answers = {};
-function drawQuestions(locked) {
-  $("questions").innerHTML = QUESTIONS.map((q, i) => `
-    <div class="card q">
-      <div class="stem"><p><span class="n">${i + 1}.</span>${q.stem}</p><svg class="fig" viewBox="0 0 170 100" aria-hidden="true">${q.fig}</svg></div>
-      <div class="choices" data-id="${q.id}">
-        ${q.choices.map(([v, label]) => `<button class="choice${answers[q.id] === v ? " sel" : ""}" data-v="${v}" ${locked ? "disabled" : ""}>${label}</button>`).join("")}
-      </div>
-    </div>`).join("");
-}
-$("questions").addEventListener("click", (e) => {
-  const b = e.target.closest(".choice"); if (!b || b.disabled) return;
-  const id = b.parentElement.dataset.id;
-  answers[id] = b.dataset.v;
-  [...b.parentElement.children].forEach((c) => c.classList.toggle("sel", c === b));
-  $("checkSubmit").disabled = QUESTIONS.some((q) => !answers[q.id]);
+  onRestart() { rec.event("check-retry"); },
 });
-
-function drawCheckResult() {
-  const tries = state.check.attempts;
-  const last = tries[tries.length - 1];
-  const submit = $("checkSubmit");
-  if (!last) { $("checkResult").innerHTML = ""; submit.textContent = "Submit answers"; submit.onclick = submitCheck; return; }
-  const missed = QUESTIONS.filter((q) => last.answers[q.id] !== q.answer);
-  const canRetry = missed.length > 0 && tries.length < 2;
-  $("checkResult").innerHTML = `
-    <div class="card">
-      <p class="score">You answered ${last.score} of ${QUESTIONS.length} correctly.</p>
-      <p class="muted" style="margin:0">${missed.length === 0
-        ? "You have what this lesson builds on."
-        : "Read the short refresher" + (missed.length > 1 ? "s" : "") + " below" + (canRetry ? ", then try the questions once more or go on." : ", then go on.")}</p>
-    </div>
-    ${missed.map((q) => `<div class="card review"><span class="tag">Refresher</span><h3>${q.topic}</h3>${q.review}</div>`).join("")}
-    ${canRetry ? `<p style="margin-top:14px"><button class="btn ghost" id="retry">Try the questions again</button></p>` : ""}`;
-  submit.textContent = "Continue"; submit.disabled = false;
-  submit.onclick = () => show("read");
-  if (canRetry) $("retry").onclick = () => {
-    answers = {}; drawQuestions(false);
-    $("checkResult").innerHTML = "";
-    submit.textContent = "Submit answers"; submit.disabled = true; submit.onclick = submitCheck;
-    rec.event("check-retry");
-    window.scrollTo(0, 0);
-  };
-}
-function submitCheck() {
-  const score = QUESTIONS.filter((q) => answers[q.id] === q.answer).length;
-  const missed = QUESTIONS.filter((q) => answers[q.id] !== q.answer).map((q) => q.id);
-  state.check.attempts.push({ t: Date.now(), answers: { ...answers }, score, refreshersShown: missed });
-  save();
-  rec.event("check-submit", { score });
-  drawQuestions(true);
-  drawCheckResult();
-}
-{
-  const last = state.check.attempts[state.check.attempts.length - 1];
-  if (last) answers = { ...last.answers };
-  drawQuestions(!!last);
-  drawCheckResult();
-}
+$("checkContinue").addEventListener("click", () => show("read"));
+if (state.check.attempts.length) $("checkAfter").hidden = false;
 
 // ---------- shared helpers for field pictures ----------
 /** If the board holds exactly one positive and one negative charge, return the dipole's centre. */
@@ -302,8 +213,8 @@ function buildRecord() {
   const names = { check: "Check-in", read: "Read", explore: "Explore", predict: "Predict", ask: "Ask" };
   const times = Object.keys(names).filter((k) => t[k] != null).map((k) => `${names[k]}: ${mmss(t[k])}`).join("<br>");
   const total = Object.keys(names).reduce((s, k) => s + (t[k] || 0), 0);
-  const tries = state.check.attempts.map((a, i) => `Attempt ${i + 1}: ${a.score} of ${QUESTIONS.length}`).join("<br>");
-  const shown = [...new Set(state.check.attempts.flatMap((a) => a.refreshersShown))].map((id) => QUESTIONS.find((q) => q.id === id).topic);
+  const tries = state.check.attempts.map((a, i) => `Attempt ${i + 1}: ${a.score} of ${a.total || 4}${a.skipped ? `, ${a.skipped} not answered` : ""}`).join("<br>");
+  const shown = [...new Set(state.check.attempts.flatMap((a) => a.missed || []))];
   const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   const rows = [
     ["Time on task", `${mmss(total)} in total<br><span class="muted">${times}</span>`],

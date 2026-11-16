@@ -136,36 +136,58 @@ export const rodFactor = (ratio) => 1 / Math.sqrt(1 + (ratio / 2) ** 2);
  * a: { va (pull of one piece), vb (sum of the two pulls), blanks: { dm, dist, factor, lower, upper }, est }
  */
 export function judgeRod(p, a) {
-  const L = LIMITS.rod, parts = {};
+  const L = LIMITS.rod, parts = {}, skip = () => ({ ok: false, error: "Not answered", skipped: true });
   // one piece
-  const offPiece = between(a.va, p.toPiece), offCentre = between(a.va, p.toCentre);
-  parts.piece = { ok: offPiece <= L.angle, error: null };
-  if (!parts.piece.ok) parts.piece.error = offCentre <= L.angle ? "Pull of one piece drawn toward the centre of the rod, not toward the piece"
-    : between(a.va, [-p.toPiece[0], -p.toPiece[1]]) <= 25 ? "Pull drawn away from the rod" : "Pull of one piece not drawn toward that piece";
+  let offPiece = null;
+  if (!a.va) parts.piece = skip();
+  else {
+    offPiece = between(a.va, p.toPiece);
+    parts.piece = { ok: offPiece <= L.angle, error: null };
+    if (!parts.piece.ok) parts.piece.error = between(a.va, p.toCentre) <= L.angle ? "Pull of one piece drawn toward the centre of the rod, not toward the piece"
+      : between(a.va, [-p.toPiece[0], -p.toPiece[1]]) <= 25 ? "Pull drawn away from the rod" : "Pull of one piece not drawn toward that piece";
+  }
   // two symmetric pieces
-  const sum = add(p.pulls[0], p.pulls[1]), sumOff = between(a.vb, sum), sumRatio = len(a.vb) / len(sum);
-  parts.pair = { ok: sumOff <= L.angle && sumRatio >= L.sumLow && sumRatio <= L.sumHigh, error: null };
-  if (!parts.pair.ok) parts.pair.error = sumOff > L.angle ? "Sum of the two pulls not straight toward the rod" : "Sum of the two pulls: direction right, length wrong";
+  const sum = add(p.pulls[0], p.pulls[1]);
+  let sumOff = null, sumRatio = null;
+  if (!a.vb) parts.pair = skip();
+  else {
+    sumOff = between(a.vb, sum); sumRatio = len(a.vb) / len(sum);
+    parts.pair = { ok: sumOff <= L.angle && sumRatio >= L.sumLow && sumRatio <= L.sumHigh, error: null };
+    if (!parts.pair.ok) parts.pair.error = sumOff > L.angle ? "Sum of the two pulls not straight toward the rod" : "Sum of the two pulls: direction right, length wrong";
+  }
   // the integral
-  const wrong = Object.keys(ROD_KEY).filter((k) => a.blanks[k] !== ROD_KEY[k]);
-  parts.integral = { ok: wrong.length === 0, error: null };
-  if (wrong.length) parts.integral.error = a.blanks.dist === "r2" ? "Integral: used the distance to the centre for every piece"
-    : a.blanks.factor === "1" ? "Integral: left out the factor for the part of the pull that points at the rod"
-    : a.blanks.lower === "0" && a.blanks.upper === "L" ? "Integral: limits 0 to L instead of −L/2 to +L/2"
-    : wrong.includes("dm") ? "Integral: mass of a small piece not written as (M/L) dy" : "Integral: set up incorrectly";
+  const keys = Object.keys(ROD_KEY), filled = keys.filter((k) => a.blanks[k]).length;
+  if (!filled) parts.integral = skip();
+  else {
+    const wrong = keys.filter((k) => a.blanks[k] !== ROD_KEY[k]);
+    parts.integral = { ok: wrong.length === 0, error: null };
+    if (wrong.length) parts.integral.error = a.blanks.dist === "r2" ? "Integral: used the distance to the centre for every piece"
+      : a.blanks.factor === "1" ? "Integral: left out the factor for the part of the pull that points at the rod"
+      : a.blanks.lower === "0" && a.blanks.upper === "L" ? "Integral: limits 0 to L instead of −L/2 to +L/2"
+      : a.blanks.dm && a.blanks.dm !== ROD_KEY.dm ? "Integral: mass of a small piece not written as (M/L) dy"
+      : filled < keys.length ? "Integral: not every box filled" : "Integral: set up incorrectly";
+  }
   // the ratio
   const k = rodFactor(p.ratio);
-  parts.ratio = { ok: Math.abs(a.est - k) <= L.ratio, error: null };
-  if (!parts.ratio.ok) parts.ratio.error = Math.abs(a.est - 1) <= 0.05 ? "Ratio: treated the rod as a point mass at its centre"
-    : a.est > 1.05 ? "Ratio: force larger than for a point mass" : "Ratio: miscalculated";
+  if (a.est == null) parts.ratio = skip();
+  else {
+    parts.ratio = { ok: Math.abs(a.est - k) <= L.ratio, error: null };
+    if (!parts.ratio.ok) parts.ratio.error = Math.abs(a.est - 1) <= 0.05 ? "Ratio: treated the rod as a point mass at its centre"
+      : a.est > 1.05 ? "Ratio: force larger than for a point mass" : "Ratio: miscalculated";
+  }
 
-  const first = Object.values(parts).find((x) => !x.ok);
-  const span = signedAngle(p.toCentre, p.toPiece), t = signedAngle(p.toCentre, a.va) / span;
-  const turn = signedAngle(sum, a.vb) * (Math.PI / 180);
+  const all = Object.values(parts), wrongPart = all.find((x) => !x.ok && !x.skipped), skipped = all.every((x) => x.skipped);
+  const turn = a.vb ? signedAngle(sum, a.vb) * (Math.PI / 180) : 0;
   return {
-    ok: !first, error: first ? first.error : null, parts,
-    data: { rodLengthOverDistance: p.ratio, pieceArrowOffDegrees: round(offPiece, 0), sumOffDegrees: round(sumOff, 0), blanks: a.blanks, ratioGiven: round(a.est), ratioCorrect: round(k) },
+    ok: all.every((x) => x.ok), skipped, parts,
+    error: skipped ? "Not answered" : wrongPart ? wrongPart.error : all.some((x) => x.skipped) ? "Not every part answered" : null,
+    data: { rodLengthOverDistance: p.ratio, pieceArrowOffDegrees: offPiece == null ? null : round(offPiece, 0), sumOffDegrees: sumOff == null ? null : round(sumOff, 0), blanks: a.blanks, ratioGiven: a.est == null ? null : round(a.est), ratioCorrect: round(k) },
     // t: 0 = aimed at the centre of the rod, 1 = aimed at the piece; pair: tip of the sum with the correct sum as the unit vector
-    norm: { t: round(t, 3), away: Math.abs(signedAngle(p.toCentre, a.va)) > 90, pair: { u: round(sumRatio * Math.cos(turn), 3), v: round(sumRatio * Math.sin(turn), 3) }, blanks: a.blanks, est: round(a.est, 3), correct: round(k, 3) },
+    norm: {
+      t: a.va ? round(signedAngle(p.toCentre, a.va) / signedAngle(p.toCentre, p.toPiece), 3) : null,
+      away: a.va ? Math.abs(signedAngle(p.toCentre, a.va)) > 90 : false,
+      pair: a.vb ? { u: round(sumRatio * Math.cos(turn), 3), v: round(sumRatio * Math.sin(turn), 3) } : null,
+      blanks: a.blanks, est: a.est == null ? null : round(a.est, 3), correct: round(k, 3),
+    },
   };
 }
