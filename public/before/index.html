@@ -41,9 +41,11 @@
   .role.t { background: var(--accent); }
   .solo-head .tcol { visibility: hidden; }
   .steps .tcol a { flex: none; }
-  .steps .tcol .reset { flex: none; margin-left: auto; appearance: none; background: #fff; border: 1px solid #b9c0cc; border-radius: 6px; padding: 2px 9px; font: 600 0.78rem var(--sans); color: var(--ink-soft); cursor: pointer; }
-  .steps .tcol .reset:hover { color: var(--ink); border-color: var(--ink-soft); }
-  .steps .tcol .reset.armed { background: var(--pos); border-color: var(--pos); color: #fff; }
+  /* Reset sits at the bottom of the teacher side, level with the student's Next button */
+  .tcol.tend { display: flex; flex-direction: column; }
+  .tcol.tend > .card { margin-bottom: 22px; }
+  .tcol.tend > .reset-demo { margin-top: auto; align-self: flex-end; }
+  .reset-demo.armed { background: var(--pos); border-color: var(--pos); }
   /* each question's drawing is kept short enough that the question and its drawing fit on the screen together */
   .q .fieldbox { margin-left: auto; margin-right: auto; }
 
@@ -100,7 +102,7 @@
     <li><button type="button" data-go="learn"><b>2</b><span>Learn</span></button></li>
     <li><button type="button" data-go="predict"><b>3</b><span>Predict</span></button></li>
   </ol></div>
-    <div class="tcol"><span class="role t">Teacher back end</span><span class="txt">hidden from students</span><a href="/teacher/" target="_blank" rel="noopener">full page</a><button type="button" class="reset" id="resetDemo" title="Clear the answers saved in this browser and start again">Reset demo</button></div>
+    <div class="tcol"><span class="role t">Teacher back end</span><span class="txt">hidden from students</span><a href="/teacher/" target="_blank" rel="noopener">full page</a></div>
   </div>
 </div></nav>
 
@@ -129,7 +131,7 @@
       </div>
       <div id="result" hidden></div>
     </div>
-    <aside class="tcol"></aside>
+    <aside class="tcol tend"><button type="button" class="btn reset-demo" title="Clear the answers saved in this browser and start again">Reset demo</button></aside>
   </div>
 </section>
 
@@ -173,7 +175,7 @@
       </div>
       <div class="nav"><button class="btn ghost" id="predictBack">Back</button><a class="btn" href="/">Back to the lesson</a></div>
     </div>
-    <aside class="tcol"><div class="card off">Nothing to show yet for this step.</div></aside>
+    <aside class="tcol tend"><div class="card off">Nothing to show yet for this step.</div><button type="button" class="btn reset-demo" title="Clear the answers saved in this browser and start again">Reset demo</button></aside>
   </div>
 </section>
 

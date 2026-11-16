@@ -82,19 +82,21 @@ export function clearAll() {
 }
 
 /**
- * A reset button for the demonstration, in the teacher's bar. The first click asks, the second clears
+ * Reset buttons for the demonstration, at the bottom of the teacher side. The first click asks, the second clears
  * this browser's answers and reloads the page at its first step.
  */
-export function resetButton(btn) {
-  let armed = null;
-  btn.addEventListener("click", () => {
-    if (!armed) {
-      btn.textContent = "Click again to reset"; btn.classList.add("armed");
-      armed = setTimeout(() => { armed = null; btn.textContent = "Reset demo"; btn.classList.remove("armed"); }, 3000);
-      return;
-    }
-    clearTimeout(armed);
-    clearAll();
-    location.reload();
+export function resetButtons(buttons) {
+  buttons.forEach((btn) => {
+    let armed = null;
+    btn.addEventListener("click", () => {
+      if (!armed) {
+        btn.textContent = "Click again to reset"; btn.classList.add("armed");
+        armed = setTimeout(() => { armed = null; btn.textContent = "Reset demo"; btn.classList.remove("armed"); }, 3000);
+        return;
+      }
+      clearTimeout(armed);
+      clearAll();
+      location.reload();
+    });
   });
 }

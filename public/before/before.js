@@ -1,6 +1,6 @@
 // learn.phylab.uk — Before class: 1 check-in, 2 learn (catch up on what the check-in showed), 3 predict (not built yet).
 // Demonstration layout: every row of the page has the student's part on the left and the teacher's view of it on the right.
-import { openRecord, resetButton } from "/assets/record.js";
+import { openRecord, resetButtons } from "/assets/record.js";
 import { startCheckin } from "/before/checkin.js";
 import { buildLearn } from "/before/learn.js";
 import { loadSample, renderSummary, renderQuestion } from "/assets/teacher-checkin.js";
@@ -80,4 +80,4 @@ $("learnNext").addEventListener("click", () => show("predict"));
 $("predictBack").addEventListener("click", () => show("learn"));
 
 show(state.step, true);
-resetButton(document.getElementById("resetDemo"));
+resetButtons(document.querySelectorAll(".reset-demo"));
