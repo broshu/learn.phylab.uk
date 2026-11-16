@@ -82,15 +82,26 @@ function paintVectors(answers, L = LIMITS.vectors, get = (r) => r.norm) {
     ctx.beginPath(); ctx.arc(ox, oy, L.lengthHigh * scale, -rad(L.angle), rad(L.angle)); ctx.arc(ox, oy, L.lengthLow * scale, rad(L.angle), -rad(L.angle), true); ctx.closePath(); ctx.fill();
     ctx.strokeStyle = "#e3e6ec"; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
     ctx.beginPath(); ctx.arc(ox, oy, scale, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+    // Answers snap to the grid, so many land on exactly the same spot. Each spot is drawn once, where it really is,
+    // with the dot's area growing with the number of students there and the number written in it.
+    const spots = new Map();
+    for (const a of answers) {
+      const n = get(a.r), key = `${n.u.toFixed(3)},${n.v.toFixed(3)},${a.r.ok}`;
+      const g = spots.get(key) || { u: n.u, v: n.v, r: a.r, count: 0, top: null };
+      g.count++; if (a.mine || a.live) g.top = a; spots.set(key, g);
+    }
+    const groups = [...spots.values()].sort((p, q) => q.count - p.count); // big dots first, small ones stay visible on top
+    for (const g of groups) {
+      const [x, y] = px(g.u, g.v); g.rad = 5 + 2.2 * Math.sqrt(g.count - 1);
+      ctx.beginPath(); ctx.arc(x, y, g.rad, 0, 7); ctx.fillStyle = colour(g.r, g.count > 1 ? 0.38 : 0.62); ctx.fill();
+      if (g.count > 1) { ctx.strokeStyle = colour(g.r, 0.95); ctx.lineWidth = 1.5; ctx.stroke(); }
+    }
+    // the correct sum is drawn over the dots so that it always shows
     arrow(ctx, ox, oy, ...px(1, 0), GOOD, 3.5);
     label(ctx, "correct sum", ...((p) => [p[0], p[1] + 16])(px(0.5, 0)), GOOD);
     ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(ox, oy, 3.5, 0, 7); ctx.fill();
-    const seen = {}; // identical answers are spread in a small spiral so that every dot shows
-    for (const a of mineLast(answers)) {
-      const r = a.r, n = get(r), key = `${n.u.toFixed(2)},${n.v.toFixed(2)}`, k = (seen[key] = (seen[key] || 0) + 1) - 1;
-      const [x, y] = px(n.u, n.v), s = 4.6 * Math.sqrt(k), t = k * 2.4;
-      dot(ctx, x + s * Math.cos(t), y + s * Math.sin(t), r, a);
-    }
+    for (const g of groups) if (g.count > 1) { const [x, y] = px(g.u, g.v); label(ctx, `${g.count}`, x, y - g.rad - 7, g.r.ok ? GOOD : "#c0392b", "center", "700"); }
+    for (const g of groups) if (g.top) dot(ctx, ...px(g.u, g.v), g.r, g.top); // this browser's answer, marked at its exact spot
   };
 }
 
