@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>In class · The Electric Field of Point Charges · learn.phylab.uk</title>
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/checkin.css">
+<link rel="stylesheet" href="/assets/teacher.css">
+<style>
+  /* Demonstration layout: one page, one scrollbar. Each row is one thing the student does, with what the
+     teacher sees about it beside it, so the two sides always stay at the same point of the lesson. */
+  .topbar .wrap, .steps .wrap { max-width: 1440px; }
+  .demo { max-width: 1440px; margin: 0 auto; padding: 0 20px; }
+  /* Two separate screens side by side: the student's page on the left; on the right, behind a dashed line,
+     the teacher's back end, which students never see. Rows touch, so the line and the back-end panel run unbroken. */
+  .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, 0.62fr); gap: 0; align-items: stretch; }
+  .row > .scol { min-width: 0; padding: 18px 28px 0 0; }
+  .row > .tcol { min-width: 0; padding: 18px 0 0 24px; margin-left: 4px; border-left: 2px dashed #9aa3b5; background: #e6e9ef; padding-right: 16px; }
+  .tcol .card { padding: 14px 16px; border-color: #cdd3dd; box-shadow: 0 1px 0 rgba(26,32,48,0.04); }
+  .tcol .card.off { color: var(--ink-soft); font-size: 0.9rem; background: transparent; border-style: dashed; }
+  section.step .row:last-child > * { padding-bottom: 24px; }
+  /* Learn is the student's own catch-up: one screen only, no back end beside it */
+  .solo .row { grid-template-columns: minmax(0, 960px); }
+  .solo .row > .scol { padding-right: 0; }
+  .solo .row > .tcol { display: none; }
+
+  /* one slim pinned bar: the step tabs above the student's screen, the back-end label above the teacher's */
+  .steps { position: sticky; top: 0; z-index: 5; background: var(--paper); border-bottom: 1px solid var(--rule); }
+  .steps .row > * { padding-top: 0; padding-bottom: 0; display: flex; align-items: center; gap: 10px; min-height: 42px; white-space: nowrap; overflow: hidden; }
+  .steps .row > .tcol { background: #e6e9ef; font-size: 0.8rem; color: var(--ink-soft); }
+  .steps .row > .tcol span.txt { overflow: hidden; text-overflow: ellipsis; }
+  .steps ol { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; flex: 1; min-width: 0; }
+  .steps li { flex: 1; min-width: 0; }
+  .steps li button { appearance: none; width: 100%; background: #fff; border: 1px solid var(--rule); border-bottom: 3px solid var(--rule); border-radius: 7px; padding: 4px 10px; font: 600 0.84rem var(--sans); color: var(--ink-soft); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .steps li button:hover { color: var(--ink); border-color: #b9c0cc; }
+  .steps li.done button { border-bottom-color: var(--accent); color: var(--accent); }
+  .steps li.now button { border-color: var(--ink); background: var(--ink); color: #fff; }
+  .steps li b { font-weight: 600; opacity: 0.6; margin-right: 4px; }
+  .role { display: inline-block; flex: none; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #fff; background: var(--ink-soft); border-radius: 5px; padding: 2px 7px; }
+  .role.t { background: var(--accent); }
+  .solo-head .tcol { visibility: hidden; }
+  .steps .tcol a { flex: none; }
+  /* each question's drawing is kept short enough that the question and its drawing fit on the screen together */
+  .q .fieldbox { margin-left: auto; margin-right: auto; }
+
+  section.step { display: none; padding: 0; }
+  .step > .row:first-child > * { padding-top: 26px; }
+  body.solo-step .demo > .row > .tcol { display: none; }
+  section.step.on { display: block; }
+  .step h1 { font-size: clamp(1.6rem, 4vw, 2.1rem); }
+  .intro { color: var(--ink-soft); max-width: 66ch; margin: 10px 0 18px; }
+
+  /* learn */
+  ol.todo { list-style: none; padding: 0; margin: 10px 0 0; }
+  ol.todo li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--rule); }
+  ol.todo li span { font-size: 0.88rem; font-weight: 600; white-space: nowrap; }
+  ol.todo li.ok span { color: var(--accent); } ol.todo li.no span { color: var(--pos); } ol.todo li.skip span { color: var(--ink-soft); }
+  .learn h2 { margin: 4px 0 4px; }
+  .learn h3 { margin: 24px 0 10px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: 1.1rem; }
+  .learn .tag.no { color: var(--pos); }
+  .learn .what { margin-top: 10px; }
+  .learn .why { color: var(--ink-soft); font-style: italic; }
+  .learn [data-try] { margin: 6px 0 4px; }
+  ul.tight { margin: 0 0 0.9em; padding-left: 1.2em; } ul.tight li { margin-bottom: 4px; }
+  ul.parts { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 6px 10px; font-size: 0.9rem; }
+  ul.parts li { padding: 3px 10px; border-radius: 6px; background: #fbeceb; color: var(--pos); font-weight: 600; }
+  ul.parts li.ok { background: var(--accent-soft); color: var(--accent); }
+  ul.parts li.skip { background: #eef0f4; color: var(--ink-soft); }
+  table.ratios { border-collapse: collapse; margin: 0 0 14px; font-size: 0.95rem; }
+  table.ratios td { padding: 4px 18px 4px 0; border-bottom: 1px solid var(--rule); }
+  details.sol { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--rule); }
+  details.sol > summary { font-family: var(--serif); font-size: 1.1rem; margin-bottom: 10px; }
+  .learn details.sol + details.sol { margin-top: 10px; }
+  .placeholder { border: 2px dashed var(--rule); background: transparent; }
+
+  @media (max-width: 1000px) {
+    .row { grid-template-columns: 1fr; }
+    .row > .scol { padding-right: 0; }
+    .row > .tcol { margin: 12px 0 0; border-left: 0; border-top: 2px dashed #9aa3b5; padding: 14px 12px; }
+    .steps .row .tcol { display: none; }
+  }
+  @media (max-width: 640px) { .steps li span { display: none; } }
+</style>
+</head>
+<body>
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="/">learn<span>.phylab.uk</span></a>
+  <span class="where">In class · The Electric Field of Point Charges</span>
+</div></header>
+
+<nav class="steps" aria-label="Progress"><div class="wrap">
+  <div class="row colhead" id="colhead">
+    <div class="scol"><span class="role">Student</span>
+  <ol id="stepper">
+    <li><button type="button" data-go="draw"><b>1</b><span>Draw</span></button></li>
+    <li><button type="button" data-go="peer"><b>2</b><span>Peer feedback</span></button></li>
+    <li><button type="button" data-go="ar"><b>3</b><span>3D match</span></button></li>
+  </ol></div>
+    <div class="tcol"><span class="role t">Teacher back end</span><span class="txt">hidden from students</span><a href="/teacher/" target="_blank" rel="noopener">full page</a></div>
+  </div>
+</div></nav>
+
+<div class="demo">
+
+<!-- 1 · DRAW -->
+<section class="step" id="s-draw">
+  <div class="row">
+    <div class="scol">
+      <h1>Draw the field lines</h1>
+      <p class="intro">A positive and a negative charge of the same size. Draw the electric field lines around them, as many as you need to show the shape of the field. Draw each line in the direction the field points; the arrow follows your finger or mouse. When you check, the system looks only for big mistakes, such as lines that cross.</p>
+      <div id="drawStudent"></div>
+      <div class="nav"><a class="btn ghost" href="/before/">Before class</a><button class="btn" data-next="peer">Next: peer feedback</button></div>
+    </div>
+    <aside class="tcol"><div class="card tcard" id="drawTeacher"></div></aside>
+  </div>
+</section>
+
+<!-- 2 · PEER FEEDBACK -->
+<section class="step" id="s-peer">
+  <div class="row">
+    <div class="scol">
+      <h1>Peer feedback</h1>
+      <p class="intro">Look at a classmate's drawing and leave a comment. This is feedback, not marking.</p>
+      <div class="card placeholder"><p style="margin:0"><strong>This step is being built.</strong></p></div>
+      <div class="nav"><button class="btn ghost" data-next="draw">Back</button><button class="btn" data-next="ar">Next</button></div>
+    </div>
+    <aside class="tcol"><div class="card off">Here: who was paired with whom, and the comments given.</div></aside>
+  </div>
+</section>
+
+<!-- 3 · 3D MATCH (AR on the tablet) -->
+<section class="step" id="s-ar">
+  <div class="row">
+    <div class="scol">
+      <h1>3D match</h1>
+      <p class="intro">You are shown a field in three dimensions. Choose objects and place them so that they make the same field.</p>
+      <div class="card placeholder"><p style="margin:0"><strong>This step is being built.</strong></p></div>
+      <div class="nav"><button class="btn ghost" data-next="peer">Back</button><a class="btn" href="/">Back to the lesson</a></div>
+    </div>
+    <aside class="tcol"><div class="card off">Here: how far each student got with the match.</div></aside>
+  </div>
+</section>
+
+</div>
+
+<script type="module" src="/in-class/in-class.js"></script>
+</body>
+</html>
