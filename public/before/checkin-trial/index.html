@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Check-in (trial) · learn.phylab.uk</title>
+<link rel="stylesheet" href="/assets/site.css">
+<style>
+  main { padding: 30px 20px 10px; }
+  .intro { color: var(--ink-soft); max-width: 62ch; margin: 10px 0 22px; }
+  .q { margin-bottom: 18px; }
+  .q .stem { margin: 0 0 14px; }
+  .q .n { font-family: var(--serif); color: var(--ink-soft); margin-right: 6px; }
+  .readout { margin-top: 8px; }
+  .score { font-family: var(--serif); font-size: 1.3rem; margin: 0 0 6px; }
+  .review { margin-top: 14px; border-left: 4px solid var(--warn); }
+  .review h3 { margin-bottom: 8px; }
+  .review .fieldbox { margin-top: 10px; }
+  .cap { font-size: 0.88rem; color: var(--ink-soft); margin: 6px 0 0; }
+  .nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 22px 0 0; }
+  #recorded { margin-top: 22px; }
+  details summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+  table.rec { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+  table.rec th, table.rec td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  table.rec code { font-size: 0.8rem; color: var(--ink-soft); word-break: break-word; }
+</style>
+</head>
+<body>
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="/">learn<span>.phylab.uk</span></a>
+  <span class="where">Trial page · not yet part of the lesson</span>
+</div></header>
+
+<main class="wrap">
+  <h1>Check-in</h1>
+  <p class="intro">Four quick questions on what this lesson builds on. You answer by dragging. They do not count toward any grade; if something has slipped, you get a short refresher before moving on.</p>
+  <div id="items"></div>
+  <div class="nav">
+    <span class="muted small" id="left"></span>
+    <span>
+      <button class="btn" id="submit" disabled>Submit answers</button>
+      <button class="btn ghost" id="again" hidden>Try again with new numbers</button>
+    </span>
+  </div>
+  <div id="result" style="margin-top:22px"></div>
+  <div id="recorded"></div>
+  <footer class="site"><p>Trial of an interactive check-in. Each question is drawn with different numbers every time the page loads.</p><p><button class="btn small ghost" id="fill">Reviewer only: fill in correct answers</button></p></footer>
+</main>
+<script type="module" src="/before/checkin-trial/trial.js"></script>
+</body>
+</html>
