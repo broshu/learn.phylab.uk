@@ -3,15 +3,15 @@
 // Teacher side: every drawing in the class overlaid in one picture, coloured right / wrong / unclear, with statistics.
 import { fieldLines } from "/assets/field.js";
 import { charge, INK, MINE } from "/assets/board.js";
-import { W, H, CHARGES, KINDS, UNCLEAR, judge } from "/in-class/lines-judge.js";
-import { makeClass } from "/in-class/lines-sample.js";
+import { W, H, CHARGES, KINDS, UNCLEAR, judge } from "/during/lines-judge.js";
+import { makeClass } from "/during/lines-sample.js";
 
 const OK = "#0d6b5f", BAD = "#c0392b", HUH = "#d98200";
 const COLOR = { ok: OK, wrong: BAD, unclear: HUH };
 const reference = fieldLines(CHARGES, { x0: 0, x1: W, y0: 0, y1: H }, 14);
 
 /** A canvas showing the board in centimetres, redrawn by `paint`. */
-function sheet(canvas, paint) {
+export function sheet(canvas, paint) {
   const s = { canvas, ctx: canvas.getContext("2d"), paint };
   s.resize = () => {
     const w = canvas.clientWidth || 600, dpr = window.devicePixelRatio || 1, h = Math.round((w * H) / W);

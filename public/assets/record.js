@@ -20,7 +20,7 @@ function write(all) {
   }
 }
 
-/** One record per part of the lesson ("before", "in-class", "after"). */
+/** One record per part of the lesson ("before", "during", "after"). */
 export function openRecord(part) {
   const all = read();
   const rec = all[part] || { part, startedAt: Date.now(), events: [], data: {} };

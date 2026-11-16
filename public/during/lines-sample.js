@@ -2,9 +2,9 @@
 // Each simulated student draws 6 to 10 lines by hand (smooth wobble added), and some make the common mistakes.
 // The drawings are judged by the same code as a real student's, so the teacher's picture matches what students see.
 import { fieldLines } from "/assets/field.js";
-import { W, H, CHARGES, judge } from "/in-class/lines-judge.js";
+import { W, H, CHARGES, judge } from "/during/lines-judge.js";
 
-function rng(seed) { return () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296); }
+export function rng(seed) { return () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296); }
 
 /** Keep the part of a line that lies on the board, from its start. */
 function clip(pts) {
@@ -14,7 +14,7 @@ function clip(pts) {
 }
 
 /** Hand wobble: a smooth sideways offset along the line. */
-function wobble(pts, amp, r) {
+export function wobble(pts, amp, r) {
   const ph1 = r() * 6.3, ph2 = r() * 6.3, f1 = 1.2 + r() * 1.5, f2 = 3 + r() * 3;
   let s = 0;
   return pts.map((p, i) => {

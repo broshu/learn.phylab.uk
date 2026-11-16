@@ -72,6 +72,17 @@
   details.sol { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--rule); }
   details.sol > summary { font-family: var(--serif); font-size: 1.1rem; margin-bottom: 10px; }
   .learn details.sol + details.sol { margin-top: 10px; }
+  /* peer feedback */
+  ol.pnotes { list-style: none; padding: 0; margin: 4px 0 14px; }
+  ol.pnotes li { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+  .pnum { flex: none; width: 24px; height: 24px; border-radius: 50%; background: #7b3fbf; color: #fff; font: 700 0.8rem/24px var(--sans); text-align: center; margin-top: 6px; }
+  .scol textarea { width: 100%; font: 0.97rem/1.4 var(--sans); padding: 8px 10px; border: 1px solid var(--rule); border-radius: 8px; background: #fff; resize: vertical; }
+  .scol textarea:disabled { background: #f1f2f5; color: var(--ink); }
+  .plabel { display: block; font-weight: 600; font-size: 0.95rem; margin: 0 0 6px; }
+  h4.tsub { font: 600 0.92rem var(--sans); margin: 16px 0 6px; }
+  .tcomm { border-top: 1px solid var(--rule); padding: 8px 0 2px; font-size: 0.88rem; }
+  .tcomm .who { font-weight: 600; } .tcomm .who i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+  .tcomm ul { list-style: none; padding: 0; margin: 4px 0 4px; } .tcomm li { margin-bottom: 3px; } .tcomm li b { margin-right: 6px; }
   .placeholder { border: 2px dashed var(--rule); background: transparent; }
 
   @media (max-width: 1000px) {
@@ -121,11 +132,11 @@
   <div class="row">
     <div class="scol">
       <h1>Peer feedback</h1>
-      <p class="intro">Look at a classmate's drawing and leave a comment. This is feedback, not marking.</p>
-      <div class="card placeholder"><p style="margin:0"><strong>This step is being built.</strong></p></div>
-      <div class="nav"><button class="btn ghost" data-next="draw">Back</button><button class="btn" data-next="ar">Next</button></div>
+      <p class="intro">Help a classmate improve their drawing. You are not marking it: point out what you notice and ask questions, the way you would want feedback on your own drawing.</p>
+      <div id="peerStudent"></div>
+      <div class="nav"><button class="btn ghost" data-next="draw">Back</button><button class="btn" data-next="ar">Next: 3D match</button></div>
     </div>
-    <aside class="tcol"><div class="card off">Here: who was paired with whom, and the comments given.</div></aside>
+    <aside class="tcol"><div class="card tcard" id="peerTeacher"></div></aside>
   </div>
 </section>
 
@@ -144,6 +155,6 @@
 
 </div>
 
-<script type="module" src="/in-class/in-class.js"></script>
+<script type="module" src="/during/during.js"></script>
 </body>
 </html>

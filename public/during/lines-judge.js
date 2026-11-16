@@ -13,6 +13,7 @@ const STEP = 0.12;        // cm: lines are resampled at this spacing before judg
 
 export const KINDS = {
   reversed: { label: "Arrow points the wrong way", why: "Field lines point away from the positive charge and toward the negative charge." },
+  self:     { label: "Line crosses itself", why: "At the crossing point the line would have to point two ways at once, but the field has only one direction there." },
   cross:    { label: "Lines cross", why: "At any point the field has one direction only, so two field lines can never cross." },
   off:      { label: "Does not follow the field", why: "The line runs across the field instead of along it. Near the charges lines are almost radial; between them they curve from + to −." },
   loop:     { label: "Closed loop", why: "Field lines of charges at rest start on positive charges and end on negative charges (or leave the picture). They never close on themselves." },
@@ -96,7 +97,17 @@ export function judge(strokes) {
 
     // closed loop
     const a = p[0], b = p[p.length - 1];
-    if (len > 2.5 && Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.6 && !nearCharge(a[0], a[1], NEAR_CHARGE)) out.kinds.push("loop");
+    const closed = len > 2.5 && Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.6 && !nearCharge(a[0], a[1], NEAR_CHARGE);
+    if (closed) out.kinds.push("loop");
+
+    // crossing itself (a closed loop meeting its own start is already counted as a loop)
+    out.selfAt = null;
+    for (let i = 1; i < p.length && !out.selfAt; i++) for (let j = i + 3; j < p.length; j++) {
+      if (closed && (i < 6 || j > p.length - 6)) continue;
+      const c = crossing(p[i - 1], p[i], p[j - 1], p[j]);
+      if (!c || c.sin < 0.26 || nearCharge(c.x, c.y, NEAR_CHARGE)) continue;
+      out.selfAt = { x: c.x, y: c.y }; out.kinds.push("self"); break;
+    }
     return out;
   });
 
@@ -122,6 +133,7 @@ export function judge(strokes) {
     }
   }
 
+  for (const l of lines) if (l.selfAt) crossings.push(l.selfAt);
   const kinds = {};
   for (const l of lines) {
     l.status = l.kinds.length ? "wrong" : l.unclear.length ? "unclear" : "ok";

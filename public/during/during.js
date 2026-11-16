@@ -1,9 +1,10 @@
-// learn.phylab.uk — In class: 1 draw field lines (automatic check), 2 peer feedback, 3 3D match (AR on the tablet).
+// learn.phylab.uk — In class (/during/): 1 draw field lines (automatic check), 2 peer feedback, 3 3D match (AR on the tablet).
 // Same demonstration layout as Before class: student on the left, teacher back end on the right.
 import { openRecord } from "/assets/record.js";
-import { startDraw } from "/in-class/draw.js";
+import { startDraw } from "/during/draw.js";
+import { startPeer } from "/during/peer.js";
 
-const rec = openRecord("in-class");
+const rec = openRecord("during");
 const ORDER = ["draw", "peer", "ar"];
 let state = rec.get("state");
 if (!state || !ORDER.includes(state.step)) state = { step: "draw" };
@@ -21,4 +22,5 @@ document.addEventListener("visibilitychange", () => rec.event("step", { name: do
 document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => show(b.dataset.go)));
 document.querySelectorAll("[data-next]").forEach((b) => b.addEventListener("click", () => show(b.dataset.next)));
 startDraw({ student: $("drawStudent"), teacher: $("drawTeacher"), rec });
+startPeer({ student: $("peerStudent"), teacher: $("peerTeacher"), rec });
 show(state.step, true);
