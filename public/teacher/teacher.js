@@ -171,7 +171,7 @@ function renderRod(box, answers, n) {
       <div><h4>B · The integral <span>${share("integral")}</span></h4>
         <table class="blanks"><tr><th>Box</th><th>Correct card</th><th class="n">Right</th><th>Most common wrong card</th><th class="n"></th></tr>${rows}</table></div>
       <div><h4>C · Force compared with a point mass <span>${share("ratio")}</span></h4><div class="plot"><canvas id="rod-ratio"></canvas></div>
-        <p class="how">Each dot is one student's value. The correct value depends on the rod each student was given (three versions). A value of 1 treats the rod as a point mass at its centre.</p></div>
+        <p class="how">Each dot is one student's value. The correct value depends on the rod each student was given (two versions). A value of 1 treats the rod as a point mass at its centre.</p></div>
     </div>`;
 
   // A1: ball at the origin, rod to the left, the piece up at 32 degrees
@@ -193,7 +193,7 @@ function renderRod(box, answers, n) {
   plot($("rod-ratio"), [-0.08, 1.58, -0.3, 0.72], ({ ctx, px }) => {
     ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(...px(0, 0)); ctx.lineTo(...px(1.5, 0)); ctx.stroke();
     for (const v of [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5]) { const [x, y] = px(v, 0); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 6); ctx.stroke(); label(ctx, String(v), x, y + 16, INK); }
-    for (const [v, t] of [[0.447, "L = 4r"], [0.707, "L = 2r"], [0.894, "L = r"]]) {
+    for (const [v, t] of [[0.555, "L = 3r"], [0.707, "L = 2r"]]) {
       const [x, y] = px(v, 0); ctx.fillStyle = "rgba(13,107,95,0.14)"; ctx.fillRect(x - LIMITS.rod.ratio * (px(1, 0)[0] - px(0, 0)[0]), px(0, 0.66)[1], 2 * LIMITS.rod.ratio * (px(1, 0)[0] - px(0, 0)[0]), y - px(0, 0.66)[1]);
       label(ctx, t, x, px(0, 0.69)[1], GOOD);
     }

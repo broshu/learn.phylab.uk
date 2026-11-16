@@ -86,7 +86,7 @@ function force() {
 }
 
 function rod() {
-  const ratio = pick([1, 2, 4]), rb = 5 / ratio, unit = (v) => [v[0] / len(v), v[1] / len(v)];
+  const ratio = pick([2, 3]), rb = 5 / ratio, unit = (v) => [v[0] / len(v), v[1] / len(v)];
   const toPiece = unit([-rb, uniform(1.9, 2.3)]), toCentre = [-1, 0], a = Math.min(1.6, rb * 0.55);
   const pulls = [1, -1].map((s) => { const u = unit([-rb, s * 1.6]); return [u[0] * a, u[1] * a]; });
   const sum = add(pulls[0], pulls[1]), k = rodFactor(ratio);

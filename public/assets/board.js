@@ -98,7 +98,7 @@ export class Board {
   _down(e) {
     if (this.locked) return;
     const [mx, my] = this._point(e);
-    let best = null, bestD = 34;
+    let best = null, bestD = e.pointerType === "touch" ? 46 : 34; // a finger needs a larger target than a mouse
     for (const h of this.handles) {
       const [hx, hy] = this.px(h.x, h.y);
       const d = Math.hypot(mx - hx, my - hy);

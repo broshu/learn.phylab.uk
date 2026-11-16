@@ -19,11 +19,13 @@ export const between = (a, b) => deg(Math.acos(Math.max(-1, Math.min(1, (a[0] * 
 export const signedAngle = (a, b) => deg(Math.atan2(a[0] * b[1] - a[1] * b[0], a[0] * b[0] + a[1] * b[1]));
 
 export const LIMITS = {
-  vectors: { angle: 10, lengthLow: 0.85, lengthHigh: 1.15 },
-  pointField: { angle: 15, farLow: 0.15, farHigh: 0.4, sameLow: 0.75, sameHigh: 1.33 },
-  coulomb: { low: 0.66, high: 0.76 },
-  force: { angle: 20, lengthLow: 0.6, lengthHigh: 1.67 },
-  rod: { angle: 10, sumLow: 0.7, sumHigh: 1.3, ratio: 0.06 },
+  // Kept generous on purpose: answers are dragged freehand, with a mouse or a finger on a phone.
+  vectors: { angle: 15, lengthLow: 0.8, lengthHigh: 1.2 },
+  // far point: the arrow only has to be less than half as long as at the near point
+  pointField: { angle: 20, farHigh: 0.5, sameLow: 0.6, sameHigh: 1.67 },
+  coulomb: { low: 0.62, high: 0.8 },
+  force: { angle: 25, lengthLow: 0.5, lengthHigh: 2 },
+  rod: { angle: 15, sumLow: 0.6, sumHigh: 1.5, ratio: 0.08 },
 };
 
 /** 1 · sum of vectors A and B; S is what the student drew. */
@@ -55,17 +57,16 @@ export function judgePointField(sign, v, out) {
   const L = LIMITS.pointField;
   const off = v.map((x, i) => between(x, out[i]));
   const lengths = v.map(len), far = lengths[1] / lengths[0], same = lengths[2] / lengths[0];
-  const dirOk = off.every((a) => a <= L.angle), farOk = far >= L.farLow && far <= L.farHigh, sameOk = same >= L.sameLow && same <= L.sameHigh;
+  const dirOk = off.every((a) => a <= L.angle), farOk = far < L.farHigh, sameOk = same >= L.sameLow && same <= L.sameHigh;
   const ok = dirOk && farOk && sameOk;
   let error = null;
   if (!ok) {
     if (off.every((a) => a >= 180 - L.angle)) error = "All three arrows point the wrong way for this sign of charge";
     else if (!dirOk) error = "Arrows not along the line to the charge";
     else if (!sameOk) error = "Different lengths at the same distance";
-    else if (far > L.farHigh && far <= 0.65) error = "At twice the distance, drawn about half as long (should be a quarter)";
-    else if (far > 0.65 && far <= 1.25) error = "At twice the distance, drawn about the same length";
-    else if (far > 1.25) error = "Drawn stronger farther from the charge";
-    else error = "At twice the distance, drawn too short";
+    else if (far <= 0.8) error = "At twice the distance, drawn shorter but still half as long or more (should be a quarter)";
+    else if (far <= 1.25) error = "At twice the distance, drawn about the same length";
+    else error = "Drawn stronger farther from the charge";
   }
   return {
     ok, error,

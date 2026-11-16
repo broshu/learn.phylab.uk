@@ -61,14 +61,15 @@ function vectorSum() {
 
 // ---------- 2 · the field of one point charge ----------
 function pointChargeField() {
-  const C = [6, 3.5], r = 1.5, sign = pick([1, -1]);
+  // points keep clear of the charge (r = 1.8 squares), so there is room to draw an arrow toward it or away from it
+  const C = [6, 4], r = 1.8, sign = pick([1, -1]);
   const at = (a, d) => [C[0] + d * Math.cos(rad(a)), C[1] + d * Math.sin(rad(a))];
   const P = [at(pick([60, 90, 120]), r), at(pick([-15, 0, 15, 165, 180, 195]), 2 * r), at(pick([240, 270, 300]), r)];
   const out = P.map((p) => { const v = sub(p, C); return [(sign * v[0]) / len(v), (sign * v[1]) / len(v)]; });
   let tips;
   return {
-    id: "pointField", topic: "The electric field of a point charge", w: 12, h: 7, grid: false,
-    prompt: `A ${sign > 0 ? "positive" : "negative"} point charge. Points 1 and 3 are the same distance ${M("<mi>r</mi>")} from it; point 2 is twice as far away. At each point, drag out an arrow for the electric field there. Both the direction and the relative lengths of your three arrows count.`,
+    id: "pointField", topic: "The electric field of a point charge", w: 12, h: 8, grid: false,
+    prompt: `A ${sign > 0 ? "positive" : "negative"} point charge. Points 1 and 3 are the same distance ${M("<mi>r</mi>")} from it; point 2 is twice as far away. At each point, drag out an arrow for the electric field there. What counts is the direction of each arrow and which arrows are clearly longer or shorter than the others; exact lengths do not matter.`,
     setup(b) { tips = P.map((p) => b.addHandle({ x: p[0], y: p[1] })); },
     paint(b, ctx, review) {
       const [cx, cy] = b.px(...C);
@@ -80,7 +81,7 @@ function pointChargeField() {
       charge(ctx, cx, cy, sign, 15);
       P.forEach((p, i) => {
         const [x, y] = b.px(...p);
-        if (review) { const L = Math.max(0.8, Math.min(1.3, len(sub([tips[0].x, tips[0].y], P[0])) || 1.2)) * (i === 1 ? 0.25 : 1); draw(b, ctx, p, [p[0] + out[i][0] * L, p[1] + out[i][1] * L], RIGHT, 3.5); }
+        if (review) { const L = Math.max(1, Math.min(1.5, len(sub([tips[0].x, tips[0].y], P[0])) || 1.2)) * (i === 1 ? 0.25 : 1); draw(b, ctx, p, [p[0] + out[i][0] * L, p[1] + out[i][1] * L], RIGHT, 3.5); }
         if (len(sub([tips[i].x, tips[i].y], p)) > 0.1) draw(b, ctx, p, [tips[i].x, tips[i].y], MINE, 3.5);
         ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 7); ctx.fill();
         ctx.font = "600 14px -apple-system, Arial, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";

@@ -13,7 +13,7 @@ const M = (s) => `<math>${s}</math>`;
 const D = (s) => `<math><mstyle displaystyle="true">${s}</mstyle></math>`;
 
 export function rodGravity() {
-  const ratio = pick([1, 2, 4]);                       // L / r
+  const ratio = pick([2, 3]);                          // L / r
   const rodX = 3, yc = 3.5, half = 2.5, rb = (2 * half) / ratio, ball = [rodX + rb, yc];
   const pieceY = yc + 1.9 + Math.random() * 0.4;       // the highlighted piece, in the upper half
   const pairDy = 1.6, a = Math.min(1.6, rb * 0.55);    // the two symmetric pieces and the drawn size of their pulls
@@ -83,7 +83,7 @@ export function rodGravity() {
       <div data-s="explore"></div>`;
 
     // Part A, first arrow
-    boardA = new Board(q('[data-c="a"]'), { w: 12, h: 7, grid: false, onChange: () => { q('[data-a="lock"]').disabled = lockedA || len(sub([tipA.x, tipA.y], ball)) < 0.4; onChange(); } });
+    boardA = new Board(q('[data-c="a"]'), { w: 9, h: 7, grid: false, onChange: () => { q('[data-a="lock"]').disabled = lockedA || len(sub([tipA.x, tipA.y], ball)) < 0.4; onChange(); } });
     tipA = boardA.addHandle({ x: ball[0], y: ball[1] });
     boardA.paint = (b, ctx) => {
       drawRod(b, ctx, [pieceY]);
@@ -100,7 +100,7 @@ export function rodGravity() {
     });
 
     // Part A, the symmetric pair
-    boardB = new Board(q('[data-c="b"]'), { w: 12, h: 7, grid: false, onChange });
+    boardB = new Board(q('[data-c="b"]'), { w: 9, h: 7, grid: false, onChange });
     tipB = boardB.addHandle({ x: ball[0], y: ball[1] });
     boardB.paint = (b, ctx, review) => {
       drawRod(b, ctx, [yc + pairDy, yc - pairDy]);
