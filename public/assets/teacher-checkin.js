@@ -192,7 +192,7 @@ function renderRod(box, answers, n, compact) {
       <div><h4>A2 · Sum of two pulls <span>${share("pair")}</span></h4><div class="plot"><canvas data-p="pair"></canvas></div>
         ${how("Turned and scaled so that the correct sum is the green arrow; each dot is the tip of one student's arrow.")}</div>
       <div class="wide"><h4>C · Force compared with a point mass <span>${share("ratio")}</span></h4><div class="plot"><canvas data-p="ratio"></canvas></div>
-        ${how("Each dot is one student's value. The correct value depends on the rod each student was given (two versions). A value of 1 treats the rod as a point mass at its centre.")}</div>
+        ${how("Each dot is one student's value, on the scale for the version of the rod that student was given. A value of 1 treats the rod as a point mass at its centre.")}</div>
       <div class="wide"><h4>B · The integral <span>${share("integral")}</span></h4>
         <table class="blanks"><tr><th>Box</th><th>Correct</th><th class="n">Right</th><th>Most common wrong</th><th class="n"></th></tr>${rows}</table></div>
     </div>`;
@@ -212,19 +212,26 @@ function renderRod(box, answers, n, compact) {
     const [x, y] = px(0, 0); ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill();
   });
   plot(c("pair"), [-1.3, 2.9, -1.2, 1.2], paintVectors(part("pair"), { angle: LIMITS.rod.angle, lengthLow: LIMITS.rod.sumLow, lengthHigh: LIMITS.rod.sumHigh }, (r) => r.norm.pair));
-  plot(c("ratio"), [-0.08, 1.58, -0.3, 0.72], ({ ctx, px }) => {
-    ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(...px(0, 0)); ctx.lineTo(...px(1.5, 0)); ctx.stroke();
-    for (const v of [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5]) { const [x, y] = px(v, 0); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 6); ctx.stroke(); label(ctx, String(v), x, y + 16, INK); }
-    for (const [v, t] of [[0.555, "L = 3r"], [0.707, "L = 2r"]]) {
-      const [x, y] = px(v, 0), u = px(1, 0)[0] - px(0, 0)[0];
-      ctx.fillStyle = "rgba(13,107,95,0.14)"; ctx.fillRect(x - LIMITS.rod.ratio * u, px(0, 0.66)[1], 2 * LIMITS.rod.ratio * u, y - px(0, 0.66)[1]);
-      label(ctx, t, x, px(0, 0.69)[1], GOOD);
-    }
-    label(ctx, "point mass", px(1, 0)[0], px(0, -0.2)[1], SOFT);
-    const stack = {};
-    for (const a of mineLast(part("ratio"))) {
-      const k = Math.round(a.r.norm.est / 0.02), cnt = (stack[k] = (stack[k] || 0) + 1), [x, y] = px(k * 0.02, 0);
-      dot(ctx, x, y - 9 - (cnt - 1) * 11, a.r, a);
+  // Two versions of the rod (L = 2r and L = 3r) have different correct values, so each gets its own scale:
+  // on one shared scale a wrong answer to one version could sit inside the other version's correct band.
+  const LANES = [{ base: 0.82, correct: 0.707, name: "Rod L = 2r" }, { base: 0, correct: 0.555, name: "Rod L = 3r" }];
+  plot(c("ratio"), [-0.08, 1.58, -0.3, 1.5], ({ ctx, px }) => {
+    const u = px(1, 0)[0] - px(0, 0)[0];
+    for (const lane of LANES) {
+      const b = lane.base, mine = part("ratio").filter((a) => Math.abs(a.r.norm.correct - lane.correct) < 0.01);
+      const [cx, cy] = px(lane.correct, b), top = px(0, b + 0.6)[1];
+      ctx.fillStyle = "rgba(13,107,95,0.14)"; ctx.fillRect(cx - LIMITS.rod.ratio * u, top, 2 * LIMITS.rod.ratio * u, cy - top);
+      ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(...px(0, b)); ctx.lineTo(...px(1.5, b)); ctx.stroke();
+      for (const v of [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5]) { const [x, y] = px(v, b); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 5); ctx.stroke(); label(ctx, String(v), x, y + 14, INK); }
+      label(ctx, `${lane.name} · ${mine.length} students`, px(0, b + 0.55)[0], px(0, b + 0.55)[1], INK, "left");
+      label(ctx, `correct ${lane.correct.toFixed(2)}`, cx, top - 8, GOOD);
+      label(ctx, "point mass", px(1.25, b)[0], px(0, b + 0.55)[1], SOFT);
+      const [p1x] = px(1, b); ctx.strokeStyle = SOFT; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(p1x, top); ctx.lineTo(p1x, cy); ctx.stroke(); ctx.setLineDash([]);
+      const stack = {};
+      for (const a of mineLast(mine)) {
+        const k = Math.round(a.r.norm.est / 0.02), cnt = (stack[k] = (stack[k] || 0) + 1), [x, y] = px(k * 0.02, b);
+        dot(ctx, x, y - 8 - (cnt - 1) * 9, a.r, a);
+      }
     }
   });
 }
