@@ -55,11 +55,11 @@ export function rodGravity() {
 
       <h3 class="part">Part A · One small piece, then two</h3>
       <p>The highlighted piece of the rod pulls on the ball. Drag from the ball to draw that pull.</p>
-      <div class="fieldbox"><canvas data-c="a"></canvas></div>
+      <div class="fieldbox" style="max-width: calc((100svh - 260px) * 1.286)"><canvas data-c="a"></canvas></div>
       <p style="margin-top:10px"><button class="btn small ghost" data-a="lock" disabled>Keep this arrow and go on</button></p>
       <div data-s="pair" hidden>
         <p>Now two pieces, placed symmetrically, with the pull of each one on the ball. Drag from the ball to draw the sum of the two pulls.</p>
-        <div class="fieldbox"><canvas data-c="b"></canvas></div>
+        <div class="fieldbox" style="max-width: calc((100svh - 260px) * 1.286)"><canvas data-c="b"></canvas></div>
       </div>
 
       <h3 class="part">Part B · Set up the integral</h3>

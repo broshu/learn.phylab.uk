@@ -290,7 +290,7 @@ export function startCheckin(options = {}) {
     $("items").innerHTML = items.map((it, i) => wrap(it.id, it.custom ? `<div class="card q" id="q-${it.id}"></div>` : `
       <div class="card q" id="q-${it.id}">
         <p class="stem"><span class="n">${i + 1}.</span>${it.prompt}</p>
-        <div class="fieldbox"><canvas id="cv-${it.id}"></canvas></div>
+        <div class="fieldbox" style="max-width: calc((100svh - 300px) * ${(it.w / it.h).toFixed(3)})"><canvas id="cv-${it.id}"></canvas></div>
         <div class="readout" id="ro-${it.id}"></div>
       </div>`)).join("");
     items.forEach((it, i) => {
