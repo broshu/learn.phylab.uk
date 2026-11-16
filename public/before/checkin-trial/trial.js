@@ -1,6 +1,7 @@
 // learn.phylab.uk — trial of an interactive check-in: four questions answered by dragging.
 // Each question tests something learned before this lesson (vectors; Chapter 22).
-import { Board, arrow, symbol, charge, INK, SOFT, MINE, RIGHT, POS, NEG } from "/assets/board.js";
+import { Board, arrow, symbol, charge, INK, SOFT, MINE, RIGHT } from "/assets/board.js";
+import { judgeVectors, judgePointField, judgeCoulomb, judgeForce } from "/assets/checkin-judge.js";
 
 const $ = (id) => document.getElementById(id);
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
@@ -11,6 +12,7 @@ const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
 const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
 /** Angle between two vectors, in degrees (0 to 180). */
 const between = (a, b) => deg(Math.acos(Math.max(-1, Math.min(1, (a[0] * b[0] + a[1] * b[1]) / (len(a) * len(b))))));
+const STORE = "learn.phylab.uk/checkin-trial/v1";
 const M = (s) => `<math>${s}</math>`;
 const V = (l) => M(`<mover><mi>${l}</mi><mo>&#x2192;</mo></mover>`);
 const draw = (b, ctx, from, to, color, width, dash) => arrow(ctx, ...b.px(...from), ...b.px(...to), color, width, dash);
@@ -49,22 +51,7 @@ function vectorSum() {
     },
     solve() { tip.x = O[0] + C[0]; tip.y = O[1] + C[1]; tip.touched = true; },
     ready: () => len(sub([tip.x, tip.y], O)) > 0.4,
-    judge() {
-      const S = sub([tip.x, tip.y], O);
-      const angle = between(S, C), ratio = len(S) / len(C);
-      const ok = angle <= 10 && ratio >= 0.85 && ratio <= 1.15;
-      let error = null;
-      if (!ok) {
-        const near = (p) => len(sub(S, p)) < 0.6;
-        if (near(A) || near(B)) error = "Drew one of the two vectors again";
-        else if (near(sub(A, B)) || near(sub(B, A))) error = "Drew the difference, not the sum";
-        else if (Math.abs(len(S) - (len(A) + len(B))) < 0.1 * (len(A) + len(B))) error = "Added the two lengths";
-        else if (angle <= 10) error = "Direction right, length wrong";
-        else if (ratio >= 0.85 && ratio <= 1.15) error = "Length right, direction wrong";
-        else error = "Direction and length both off";
-      }
-      return { ok, error, data: { A, B, drawn: S.map((n) => +n.toFixed(2)), angleOffDegrees: +angle.toFixed(1), lengthRatio: +ratio.toFixed(2) } };
-    },
+    judge: () => judgeVectors(A, B, sub([tip.x, tip.y], O)),
     review: () => `<p>Vectors add component by component: add the horizontal parts, then add the vertical parts. On a drawing, slide ${V("B")} so that it starts at the tip of ${V("A")}; the sum runs from the start of ${V("A")} to the tip of the moved ${V("B")}.</p>
       <p>The length of the sum is not the two lengths added together, unless the vectors point the same way.</p>`,
     legend: "Dashed: B moved to the tip of A.",
@@ -102,24 +89,7 @@ function pointChargeField() {
     },
     solve() { tips.forEach((t, i) => { const L = i === 1 ? 0.3 : 1.2; t.x = P[i][0] + out[i][0] * L; t.y = P[i][1] + out[i][1] * L; }); },
     ready: () => tips.every((t, i) => len(sub([t.x, t.y], P[i])) > 0.12),
-    judge() {
-      const v = tips.map((t, i) => sub([t.x, t.y], P[i]));
-      const off = v.map((x, i) => between(x, out[i]));
-      const L = v.map(len), far = L[1] / L[0], same = L[2] / L[0];
-      const dirOk = off.every((a) => a <= 15), farOk = far >= 0.15 && far <= 0.4, sameOk = same >= 0.75 && same <= 1.33;
-      const ok = dirOk && farOk && sameOk;
-      let error = null;
-      if (!ok) {
-        if (off.every((a) => a >= 165)) error = "All three arrows point the wrong way for this sign of charge";
-        else if (!dirOk) error = "Arrows not along the line to the charge";
-        else if (!sameOk) error = "Different lengths at the same distance";
-        else if (far > 0.4 && far <= 0.65) error = "Field at twice the distance drawn about half as long (should be a quarter)";
-        else if (far > 0.65 && far <= 1.25) error = "Field at twice the distance drawn about the same length";
-        else if (far > 1.25) error = "Field drawn stronger farther from the charge";
-        else error = "Field at twice the distance drawn too short";
-      }
-      return { ok, error, data: { sign, directionOffDegrees: off.map((a) => +a.toFixed(0)), lengthAtTwiceDistance: +far.toFixed(2), lengthAtSameDistance: +same.toFixed(2) } };
-    },
+    judge: () => judgePointField(sign, tips.map((t, i) => sub([t.x, t.y], P[i])), out),
     review: () => `<p>The electric field of a point charge points straight away from a positive charge and straight toward a negative charge. Its strength depends only on the distance from the charge:</p>
       <math display="block"><mi>E</mi><mo>=</mo><mfrac><mn>1</mn><mrow><mn>4</mn><mi>&#x3C0;</mi><msub><mi>&#x3B5;</mi><mn>0</mn></msub></mrow></mfrac><mfrac><mrow><mo>|</mo><mi>q</mi><mo>|</mo></mrow><msup><mi>r</mi><mn>2</mn></msup></mfrac></math>
       <p>So two points at the same distance have fields of the same strength, and at twice the distance the field is one quarter as strong.</p>`,
@@ -167,19 +137,7 @@ function coulomb() {
     readout: () => `Distance between the centres now: ${(B.x - ax).toFixed(1)} cm  ·  before: ${r0.toFixed(1)} cm`,
     solve() { B.x = ax + target; B.touched = true; },
     ready: () => B.touched,
-    judge() {
-      const ratio = (B.x - ax) / r0, force = 0.5 / (ratio * ratio);
-      const ok = ratio >= 0.66 && ratio <= 0.76;
-      let error = null;
-      if (!ok) {
-        if (ratio >= 0.45 && ratio <= 0.56) error = "Halved the distance (the force would be 2F)";
-        else if (ratio >= 0.97 && ratio <= 1.03) error = "Left the sphere where it was (the force would be F/2)";
-        else if (ratio > 1.03) error = "Moved the sphere farther away";
-        else if (ratio < 0.45) error = "Moved the sphere much too close";
-        else error = "Moved closer, but not to the right distance";
-      }
-      return { ok, error, force, data: { distanceBefore: r0, distanceNow: +(B.x - ax).toFixed(2), distanceRatio: +ratio.toFixed(2), forceInUnitsOfF: +force.toFixed(2) } };
-    },
+    judge: () => judgeCoulomb(r0, B.x - ax),
     review: (res) => `<p>At the distance you chose, the force would be about ${M(`<mn>${res.force.toFixed(1)}</mn><mi>F</mi>`)}.</p>
       <math display="block"><mi>F</mi><mo>=</mo><mfrac><mn>1</mn><mrow><mn>4</mn><mi>&#x3C0;</mi><msub><mi>&#x3B5;</mi><mn>0</mn></msub></mrow></mfrac><mfrac><mrow><mo>|</mo><msub><mi>q</mi><mtext>A</mtext></msub><mo>|</mo><mo>|</mo><msub><mi>q</mi><mtext>B</mtext></msub><mo>|</mo></mrow><msup><mi>r</mi><mn>2</mn></msup></mfrac></math>
       <p>Halving one charge halves the force. To bring the force back, ${M("<msup><mi>r</mi><mn>2</mn></msup>")} must also be halved, so the distance has to become ${M('<mstyle displaystyle="true"><mfrac><mi>r</mi><msqrt><mn>2</mn></msqrt></mfrac></mstyle>')}, about 0.71 of what it was. Halving the distance would be too much: that makes the force four times larger, not two.</p>`,
@@ -211,20 +169,7 @@ function forceInField() {
     },
     solve() { tips.forEach((t, i) => { t.x = spots[i].p[0] + spots[i].sign * e[0] * 1.3; t.y = spots[i].p[1] + spots[i].sign * e[1] * 1.3; }); },
     ready: () => tips.every((t, i) => len(sub([t.x, t.y], spots[i].p)) > 0.25),
-    judge() {
-      const v = tips.map((t, i) => sub([t.x, t.y], spots[i].p));
-      const proton = between(v[0], e), electron = between(v[1], [-e[0], -e[1]]), ratio = len(v[1]) / len(v[0]);
-      const ok = proton <= 12 && electron <= 12 && ratio >= 0.8 && ratio <= 1.25;
-      let error = null;
-      if (!ok) {
-        if (proton <= 12 && electron >= 168) error = "Force on the electron drawn along the field (should be opposite)";
-        else if (proton >= 168 && electron <= 12) error = "Force on the proton drawn against the field";
-        else if (proton >= 168 && electron >= 168) error = "Both forces reversed";
-        else if (proton <= 12 && electron <= 12) error = ratio < 0.8 ? "Force on the electron drawn smaller than on the proton" : "Force on the electron drawn larger than on the proton";
-        else error = "A force not along the line of the field";
-      }
-      return { ok, error, data: { fieldDirectionDegrees: phi, protonOffDegrees: +proton.toFixed(0), electronOffDegrees: +electron.toFixed(0), electronToProtonLength: +ratio.toFixed(2) } };
-    },
+    judge: () => judgeForce(phi, e, tips.map((t, i) => sub([t.x, t.y], spots[i].p))),
     review: () => `<p>A charge ${M("<mi>q</mi>")} at a point where the field is ${V("E")} feels the force</p>
       <math display="block"><mover><mi>F</mi><mo>&#x2192;</mo></mover><mo>=</mo><mi>q</mi><mover><mi>E</mi><mo>&#x2192;</mo></mover></math>
       <p>For a positive charge the force is along the field; for a negative charge it is opposite to the field. A proton and an electron carry charges of the same size, so in the same field the two forces are equally strong.</p>`,
@@ -232,10 +177,10 @@ function forceInField() {
 }
 
 // ---------- the page ----------
-let items = [], results = null;
+let items = [], results = null, startedAt = Date.now();
 
 function build() {
-  results = null;
+  results = null; startedAt = Date.now();
   items = [vectorSum(), pointChargeField(), coulomb(), forceInField()];
   $("items").innerHTML = items.map((it, i) => `
     <div class="card q" id="q-${it.id}">
@@ -267,6 +212,11 @@ function check() {
 function submit() {
   results = items.map((it) => ({ it, ...it.judge() }));
   items.forEach((it) => { it.board.locked = true; it.board.draw(); });
+  try { // keep the submission in this browser, so the teacher view can show it next to the sample class
+    const all = JSON.parse(localStorage.getItem(STORE) || "[]");
+    all.push({ t: Date.now(), seconds: Math.round((Date.now() - startedAt) / 1000), results: results.map((r) => ({ id: r.it.id, ok: r.ok, error: r.error, norm: r.norm })) });
+    localStorage.setItem(STORE, JSON.stringify(all.slice(-20)));
+  } catch { /* storage unavailable */ }
   const right = results.filter((r) => r.ok).length, missed = results.filter((r) => !r.ok);
   $("result").innerHTML = `
     <div class="card">
@@ -289,7 +239,8 @@ function submit() {
     <table class="rec">
       <tr><th>Question</th><th>Result</th><th>What the student did</th><th>Numbers kept</th></tr>
       ${results.map((r) => `<tr><td>${r.it.topic}</td><td>${r.ok ? "Correct" : "Not correct"}</td><td>${r.ok ? "—" : r.error}</td><td><code>${JSON.stringify(r.data).replace(/[{}"]/g, "").replace(/,/g, ", ").replace(/:/g, ": ")}</code></td></tr>`).join("")}
-    </table></details>`;
+    </table>
+    <p class="cap">This submission now also appears in the <a href="/teacher/">teacher view</a>, next to the sample class.</p></details>`;
   $("submit").hidden = true; $("again").hidden = false; $("left").textContent = "";
   $("result").scrollIntoView({ behavior: "smooth", block: "start" });
 }

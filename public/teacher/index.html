@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Teacher view · Check-in · learn.phylab.uk</title>
+<link rel="stylesheet" href="/assets/site.css">
+<style>
+  .wrap { max-width: 1040px; }
+  main { padding: 30px 20px 10px; }
+  .lead { color: var(--ink-soft); max-width: 66ch; margin: 10px 0 18px; }
+  .sample { border-left: 4px solid var(--warn); }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr) 1.6fr; gap: 14px; margin: 18px 0 26px; }
+  .tile .big { font-family: var(--serif); font-size: 2rem; line-height: 1.1; }
+  .tile .lab { font-size: 0.82rem; color: var(--ink-soft); }
+  .dist { display: flex; align-items: flex-end; gap: 8px; height: 74px; margin-top: 6px; }
+  .dist div { flex: 1; text-align: center; font-size: 0.78rem; color: var(--ink-soft); display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+  .dist i { display: block; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; }
+  .dist b { font-weight: 600; color: var(--ink); }
+
+  .qcard { margin-bottom: 18px; }
+  .qhead { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-bottom: 4px; }
+  .qhead .pct { font-family: var(--serif); font-size: 1.7rem; white-space: nowrap; }
+  .qhead .pct small { font: 0.85rem var(--sans); color: var(--ink-soft); }
+  .task { color: var(--ink-soft); font-size: 0.93rem; margin: 0 0 12px; }
+  .qbody { display: grid; grid-template-columns: 1.25fr 1fr; gap: 22px; align-items: start; }
+  .plot { border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: #fff; }
+  .plot canvas { display: block; width: 100%; }
+  .how { font-size: 0.84rem; color: var(--ink-soft); margin: 6px 0 0; }
+  table.err { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  table.err td { padding: 5px 0; vertical-align: top; }
+  table.err td.n { text-align: right; white-space: nowrap; padding-left: 10px; font-variant-numeric: tabular-nums; width: 1%; }
+  table.err .bar { height: 5px; border-radius: 3px; margin-top: 4px; background: var(--pos); }
+  table.err tr.ok .bar { background: var(--accent); }
+  table.err tr.ok td { font-weight: 600; }
+  .key { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.86rem; color: var(--ink-soft); margin: 0 0 16px; }
+  .key i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; }
+  @media (max-width: 800px) { .tiles { grid-template-columns: 1fr 1fr; } .qbody { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="/">learn<span>.phylab.uk</span></a>
+  <span class="where">Teacher view · Before class · Check-in</span>
+</div></header>
+
+<main class="wrap">
+  <h1>Check-in: how the class did</h1>
+  <p class="lead">Every student gets the same four questions with different numbers. Here all the answers are redrawn in one common picture per question and laid on top of each other, so you can see what the class did without opening each answer.</p>
+
+  <div class="card sample">
+    <strong>Sample data.</strong> The 50 students shown here are simulated, not real. <span id="mineNote"></span>
+    <button class="btn small ghost" id="clearMine" hidden style="margin-left:8px">Remove my submissions</button>
+  </div>
+
+  <section class="tiles" id="tiles"></section>
+
+  <p class="key">
+    <span><i style="background:#0d6b5f"></i>answer marked correct</span>
+    <span><i style="background:#c0392b"></i>answer marked not correct</span>
+    <span><i style="background:#fff;border:2.5px solid #1a2030;width:9px;height:9px"></i>submitted in this browser</span>
+  </p>
+  <div id="questions"></div>
+
+  <footer class="site"><p>Each answer is marked by fixed rules (direction and relative size within set limits), the same rules on the student's page and here. <a href="/before/checkin-trial/">Open the check-in as a student</a>.</p></footer>
+</main>
+<script type="module" src="/teacher/teacher.js"></script>
+</body>
+</html>
