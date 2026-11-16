@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Reset · learn.phylab.uk</title></head>
+<body style="font-family:-apple-system,Arial,sans-serif;text-align:center;padding:4rem;color:#1a2030;background:#f7f5ef">
+<p id="msg">Clearing the answers saved in this browser…</p>
+<script>
+  // Testing helper, not linked from anywhere: removes everything this site saved in this browser, then goes home.
+  try { Object.keys(localStorage).filter((k) => k.startsWith("learn.phylab.uk/")).forEach((k) => localStorage.removeItem(k)); } catch (e) {}
+  document.getElementById("msg").textContent = "Cleared. Going back to the start…";
+  setTimeout(() => location.replace("/"), 600);
+</script>
+</body></html>
