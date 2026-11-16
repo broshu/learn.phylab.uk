@@ -86,11 +86,11 @@ export function startPeer({ student, teacher, rec }) {
   const font = () => getComputedStyle(document.body).fontFamily;
 
   student.innerHTML = `
-    <p class="muted small" style="margin:0 0 8px">A classmate's drawing, without their name. Circle anything you want to talk about, then write a comment for each circle.</p>
+    <p class="muted small" style="margin:0 0 8px">A classmate's drawing, without their name. Click anything you want to talk about to circle it, then write a comment for each circle.</p>
     <div class="fieldbox"><canvas id="pBoard" aria-label="A classmate's field-line drawing to comment on"></canvas></div>
     <div class="toolbar">
       <button class="btn small ghost" id="pUndo">Remove last circle</button>
-      <span class="muted small">Drag around a place to circle it.</span>
+      <span class="muted small">Click a place to circle it, or drag around a bigger area.</span>
     </div>
     <ol class="pnotes" id="pNotes"></ol>
     <label class="plabel" for="pOverall">Overall comment <span class="muted small">(optional)</span></label>
@@ -119,7 +119,16 @@ export function startPeer({ student, teacher, rec }) {
     if (drawing) s.path(drawing, MINE, 2.6, 0.9);
   });
   const cv = board.canvas;
-  cv.style.touchAction = "none"; cv.style.cursor = "crosshair";
+  cv.style.touchAction = "none";
+  // the pointer is the circle itself: a click (or tap) drops it where it is; dragging draws a bigger one by hand
+  const R = 0.45; // cm
+  const ring = () => {
+    const d = Math.min(120, Math.round(2 * R * (board.k || 60)) + 6), c = d / 2;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${d}" height="${d}"><circle cx="${c}" cy="${c}" r="${c - 2.5}" fill="none" stroke="#fff" stroke-width="4"/><circle cx="${c}" cy="${c}" r="${c - 2.5}" fill="none" stroke="${MINE}" stroke-width="2"/></svg>`;
+    return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${c} ${c}, crosshair`;
+  };
+  const setCursor = () => { cv.style.cursor = sent ? "default" : ring(); };
+  new ResizeObserver(setCursor).observe(cv);
   const at = (e) => { const b = cv.getBoundingClientRect(); return board.cm(e.clientX - b.left, e.clientY - b.top); };
   cv.addEventListener("pointerdown", (e) => { if (sent) return; cv.setPointerCapture(e.pointerId); drawing = [at(e)]; });
   cv.addEventListener("pointermove", (e) => {
@@ -129,7 +138,13 @@ export function startPeer({ student, teacher, rec }) {
   });
   const end = () => {
     if (!drawing) return;
-    const m = drawing; drawing = null;
+    let m = drawing; drawing = null;
+    const xs = m.map((p) => p[0]), ys = m.map((p) => p[1]);
+    const spread = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+    if (spread < 0.25) { // a click, not a drag: drop the small circle here
+      const [cx, cy] = m[0];
+      m = Array.from({ length: 41 }, (_, i) => [cx + R * Math.cos((i / 40) * 2 * Math.PI), cy + R * Math.sin((i / 40) * 2 * Math.PI)]);
+    }
     if (m.length > 4) {
       marks.push({ pts: m.map(([x, y]) => [+x.toFixed(3), +y.toFixed(3)]), text: "" });
       rec.event("peer-circle", { n: marks.length });
@@ -163,7 +178,7 @@ export function startPeer({ student, teacher, rec }) {
   function lock() {
     $("pSend").hidden = sent; $("pEdit").hidden = !sent; $("pOverall").disabled = sent; $("pUndo").disabled = sent;
     $("pNotes").querySelectorAll("textarea").forEach((t) => (t.disabled = sent));
-    cv.style.cursor = sent ? "default" : "crosshair";
+    setCursor();
   }
 
   // ---------- teacher ----------
