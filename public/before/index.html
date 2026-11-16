@@ -12,26 +12,39 @@
      teacher sees about it beside it, so the two sides always stay at the same point of the lesson. */
   .topbar .wrap, .steps .wrap { max-width: 1440px; }
   .demo { max-width: 1440px; margin: 0 auto; padding: 0 20px; }
-  .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, 0.62fr); gap: 0 28px; align-items: start; }
-  .row > .scol { min-width: 0; }
-  .row > .tcol { min-width: 0; }
-  .row + .row, #items > .row { margin-top: 18px; }
-  .tcol .card { padding: 14px 16px; border-left: 4px solid var(--accent); }
-  .tcol .card.off { border-left-color: var(--rule); color: var(--ink-soft); font-size: 0.9rem; }
+  /* Two separate screens side by side: the student's page on the left; on the right, behind a dashed line,
+     the teacher's back end, which students never see. Rows touch, so the line and the back-end panel run unbroken. */
+  .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, 0.62fr); gap: 0; align-items: stretch; }
+  .row > .scol { min-width: 0; padding: 18px 28px 0 0; }
+  .row > .tcol { min-width: 0; padding: 18px 0 0 24px; margin-left: 4px; border-left: 2px dashed #9aa3b5; background: #e6e9ef; padding-right: 16px; }
+  .tcol .card { padding: 14px 16px; border-color: #cdd3dd; box-shadow: 0 1px 0 rgba(26,32,48,0.04); }
+  .tcol .card.off { color: var(--ink-soft); font-size: 0.9rem; background: transparent; border-style: dashed; }
+  section.step .row:last-child > * { padding-bottom: 24px; }
+  /* Learn is the student's own catch-up: one screen only, no back end beside it */
+  .solo .row { grid-template-columns: minmax(0, 960px); }
+  .solo .row > .scol { padding-right: 0; }
+  .solo .row > .tcol { display: none; }
 
   .steps { position: sticky; top: 0; z-index: 5; background: var(--paper); border-bottom: 1px solid var(--rule); }
   .steps ol { list-style: none; margin: 0; padding: 10px 0 0; display: flex; gap: 6px; }
-  .steps li { flex: 1; font-size: 0.82rem; font-weight: 600; color: var(--ink-soft); padding-top: 8px; border-top: 4px solid var(--rule); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .steps li.done { border-color: var(--accent); color: var(--accent); }
-  .steps li.now { border-color: var(--ink); color: var(--ink); }
+  .steps li { flex: 1; }
+  .steps li button { appearance: none; width: 100%; text-align: left; background: none; border: 0; border-top: 4px solid var(--rule); padding: 8px 0 2px; font: 600 0.86rem var(--sans); color: var(--ink-soft); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .steps li button:hover { color: var(--ink); border-top-color: #b9c0cc; }
+  .steps li.done button { border-color: var(--accent); color: var(--accent); }
+  .steps li.now button { border-color: var(--ink); color: var(--ink); }
   .steps li b { font-weight: 600; opacity: 0.6; margin-right: 4px; }
-  .steps .row { padding: 6px 0 8px; }
+  .steps .hint { font-size: 0.76rem; color: var(--ink-soft); margin-left: auto; padding-top: 12px; white-space: nowrap; }
+  .steps .row > * { padding-top: 6px; padding-bottom: 8px; }
+  .steps .row > .tcol { background: #e6e9ef; }
+  .solo-head .tcol { visibility: hidden; }
   .role { display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #fff; background: var(--ink-soft); border-radius: 5px; padding: 2px 7px; margin-right: 8px; vertical-align: 1px; }
   .role.t { background: var(--accent); }
   .colhead { font-size: 0.84rem; color: var(--ink-soft); }
   .colhead a { white-space: nowrap; }
 
-  section.step { display: none; padding: 26px 0 10px; }
+  section.step { display: none; padding: 0; }
+  .step > .row:first-child > * { padding-top: 26px; }
+  body.solo-step .demo > .row > .tcol { display: none; }
   section.step.on { display: block; }
   .step h1 { font-size: clamp(1.6rem, 4vw, 2.1rem); }
   .intro { color: var(--ink-soft); max-width: 66ch; margin: 10px 0 18px; }
@@ -61,7 +74,8 @@
 
   @media (max-width: 1000px) {
     .row { grid-template-columns: 1fr; }
-    .row > .tcol { margin-top: 10px; }
+    .row > .scol { padding-right: 0; }
+    .row > .tcol { margin: 12px 0 0; border-left: 0; border-top: 2px dashed #9aa3b5; padding: 14px 12px; }
     .steps .row .tcol { display: none; }
   }
   @media (max-width: 640px) { .steps li span { display: none; } }
@@ -75,13 +89,13 @@
 
 <nav class="steps" aria-label="Progress"><div class="wrap">
   <ol id="stepper">
-    <li><b>1</b><span>Check-in</span></li>
-    <li><b>2</b><span>Learn</span></li>
-    <li><b>3</b><span>Predict</span></li>
+    <li><button type="button" data-go="check"><b>1</b><span>Check-in</span></button></li>
+    <li><button type="button" data-go="learn"><b>2</b><span>Learn</span></button></li>
+    <li><button type="button" data-go="predict"><b>3</b><span>Predict</span></button></li>
   </ol>
-  <div class="row colhead">
-    <div class="scol"><span class="role">Student</span>What the student sees</div>
-    <div class="tcol"><span class="role t">Teacher</span>What the lecturer sees at the same point · <a href="/teacher/" target="_blank" rel="noopener">full page</a></div>
+  <div class="row colhead" id="colhead">
+    <div class="scol"><span class="role">Student</span>The student's screen</div>
+    <div class="tcol"><span class="role t">Teacher back end</span>Not visible to students; shown here in sync for this demonstration · <a href="/teacher/" target="_blank" rel="noopener">full page</a></div>
   </div>
 </div></nav>
 
@@ -115,12 +129,20 @@
 </section>
 
 <!-- 2 · LEARN -->
-<section class="step" id="s-learn">
+<section class="step solo" id="s-learn">
   <div class="row">
-    <div class="scol" id="learnHead"></div>
-    <aside class="tcol"><div class="card tcard" id="tSumLearn"></div></aside>
+    <div class="scol" id="learnHead"><h1>Learn</h1></div>
+    <aside class="tcol"></aside>
   </div>
   <div id="learnRows"></div>
+  <div class="row" id="learnEmpty">
+    <div class="scol"><div class="card">
+      <p style="margin:0 0 6px"><strong>Learn is built from the check-in answers.</strong></p>
+      <p class="muted small" style="margin:0 0 12px">After a student submits the check-in, this step goes through each question that was not right, with knowledge and a worked solution for that student's own numbers. Questions may be left blank.</p>
+      <button class="btn small" id="submitNow">Submit the check-in as it is and show Learn</button>
+    </div></div>
+    <aside class="tcol"></aside>
+  </div>
   <div class="row">
     <div class="scol">
       <div class="nav">

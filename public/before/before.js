@@ -20,7 +20,6 @@ const wrap = (id, html) => `<div class="row"><div class="scol">${html}</div><asi
 await loadSample();
 function renderTeacher() {
   renderSummary($("tSumCheck"), { compact: true });
-  renderSummary($("tSumLearn"), { compact: true });
   document.querySelectorAll("[data-tq]").forEach((box) => renderQuestion(box, box.dataset.tq, { compact: true }));
 }
 
@@ -31,6 +30,9 @@ function show(step, log = true) {
   ORDER.forEach((s) => $("s-" + s).classList.toggle("on", s === step));
   const i = ORDER.indexOf(step);
   [...$("stepper").children].forEach((li, k) => { li.classList.toggle("done", k < i); li.classList.toggle("now", k === i); });
+  $("colhead").classList.toggle("solo-head", step === "learn");
+  document.body.classList.toggle("solo-step", step === "learn"); // Learn has no back end beside it
+  $("learnEmpty").hidden = !!last;
   if (step === "predict") rec.finish();
   window.scrollTo(0, 0);
 }
@@ -46,7 +48,7 @@ const checkin = startCheckin({
     rec.event("check-submit", { score: summary.score, skipped: summary.skipped });
     last = summary.detail;
     buildLearn({
-      head: $("learnHead"), rows: $("learnRows"), detail: last, wrap,
+      head: $("learnHead"), rows: $("learnRows"), detail: last, wrap: (id, html) => wrap(null, html),
       onOpen: (id, what, open) => rec.event("learn-toggle", { question: id, what, open }),
     });
     $("toLearn").hidden = false;
@@ -57,6 +59,9 @@ const checkin = startCheckin({
 });
 renderTeacher();
 $("toLearn").addEventListener("click", () => show("learn"));
+// the step bar works as tabs: a reviewer can open any step at any time
+document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => show(b.dataset.go)));
+$("submitNow").addEventListener("click", () => $("submit").click());
 
 // ---------- 2 · learn ----------
 $("learnBack").addEventListener("click", () => show("check"));
@@ -64,6 +69,6 @@ $("learnAgain").addEventListener("click", () => { checkin.restart(); show("check
 $("learnNext").addEventListener("click", () => show("predict"));
 
 // ---------- 3 · predict ----------
-$("predictBack").addEventListener("click", () => show(last ? "learn" : "check"));
+$("predictBack").addEventListener("click", () => show("learn"));
 
 show(state.step, true);
