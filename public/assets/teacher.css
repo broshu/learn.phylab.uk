@@ -1,0 +1,65 @@
+/* learn.phylab.uk — the teacher's cards for the check-in (full teacher page and the demonstration column) */
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr) 1.9fr; gap: 14px; margin: 18px 0 26px; }
+.tile .big { font-family: var(--serif); font-size: 2rem; line-height: 1.1; }
+.tile .lab, .tsum .lab { font-size: 0.82rem; color: var(--ink-soft); }
+.dist { display: flex; align-items: flex-end; gap: 8px; height: 74px; margin-top: 6px; }
+.dist div { flex: 1; text-align: center; font-size: 0.78rem; color: var(--ink-soft); display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+.dist i { display: block; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; }
+.dist b { font-weight: 600; color: var(--ink); }
+
+.qhead { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-bottom: 4px; }
+.qhead h3 { font-size: 1.3rem; }
+.qhead .pct { font-family: var(--serif); font-size: 1.7rem; white-space: nowrap; }
+.qhead .pct small { font: 0.85rem var(--sans); color: var(--ink-soft); }
+.tag.weak { color: var(--pos); margin-left: 6px; }
+.task { color: var(--ink-soft); font-size: 0.93rem; margin: 0 0 12px; }
+.qbody { display: grid; grid-template-columns: 1.25fr 1fr; gap: 22px; align-items: start; }
+.plot { border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: #fff; }
+.plot canvas { display: block; width: 100%; }
+.how { font-size: 0.84rem; color: var(--ink-soft); margin: 6px 0 0; }
+details.how summary { cursor: pointer; font-weight: 600; margin: 0; }
+table.err { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+table.err td { padding: 5px 0; vertical-align: top; }
+table.err td.n { text-align: right; white-space: nowrap; padding-left: 10px; font-variant-numeric: tabular-nums; width: 1%; }
+table.err .bar { height: 5px; border-radius: 3px; margin-top: 4px; background: var(--pos); }
+table.err tr.ok .bar { background: var(--accent); }
+table.err tr.ok td { font-weight: 600; }
+table.err tr.rest td { color: var(--ink-soft); }
+.panels { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 26px; }
+.panels h4 { font: 600 0.98rem var(--sans); margin: 0 0 8px; display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.panels h4 span { font-family: var(--serif); font-size: 1.15rem; font-weight: 400; white-space: nowrap; }
+.panels h4 small { font: 0.8rem var(--sans); color: var(--ink-soft); }
+table.blanks { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+table.blanks th { text-align: left; font-weight: 600; color: var(--ink-soft); font-size: 0.78rem; padding: 0 8px 6px 0; }
+table.blanks td { padding: 5px 8px 5px 0; border-top: 1px solid var(--rule); vertical-align: middle; }
+table.blanks .n { text-align: right; font-variant-numeric: tabular-nums; }
+table.blanks .card-cell math { font-size: 1em; }
+.key { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.86rem; color: var(--ink-soft); margin: 0 0 16px; }
+.key i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; }
+@media (max-width: 800px) { .tiles { grid-template-columns: 1fr 1fr; } .qbody, .panels { grid-template-columns: 1fr; } }
+
+/* compact: one card per question in the teacher column of the demonstration */
+.tcard { font-size: 0.92rem; }
+.tcard .qhead { margin-bottom: 8px; }
+.tcard .qhead h3 { font-size: 1.02rem; }
+.tcard .qhead .pct { font-size: 1.35rem; }
+.tcard .qhead .pct small { font-size: 0.76rem; }
+.tcard .plot { margin-bottom: 6px; }
+.tcard details.how { margin: 0 0 8px; font-size: 0.8rem; }
+.tcard table.err { font-size: 0.8rem; }
+.tcard table.err td { padding: 3px 0; }
+.tcard table.err .bar { height: 4px; margin-top: 2px; }
+.tcard .panels { gap: 12px 12px; }
+.tcard .panels .wide { grid-column: 1 / -1; }
+.tcard .panels h4 { font-size: 0.84rem; margin-bottom: 5px; }
+.tcard .panels h4 span { font-size: 1rem; }
+.tcard table.blanks { font-size: 0.78rem; }
+.tcard table.blanks th { font-size: 0.72rem; }
+.tsum .nums { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.86rem; color: var(--ink-soft); }
+.tsum .nums b { font-family: var(--serif); font-size: 1.2rem; color: var(--ink); font-weight: 600; }
+.tsum .tdist { margin-top: 8px; }
+.tsum .dist { height: 72px; gap: 5px; margin-top: 2px; }
+.tsum .dist div { font-size: 0.72rem; }
+.tsum .tnote { font-size: 0.78rem; color: var(--ink-soft); margin: 8px 0 6px; }
+.tsum .key { margin: 0; gap: 4px 12px; font-size: 0.78rem; }
+.tsum .key i { width: 10px; height: 10px; }

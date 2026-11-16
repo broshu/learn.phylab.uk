@@ -6,60 +6,13 @@
 <meta name="robots" content="noindex">
 <title>Teacher view · Check-in · learn.phylab.uk</title>
 <link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/teacher.css">
 <style>
   .wrap { max-width: 1040px; }
-  main { padding: 30px 20px 10px; }
+  main.wrap { padding: 30px 20px 10px; }
   .lead { color: var(--ink-soft); max-width: 66ch; margin: 10px 0 18px; }
   .sample { border-left: 4px solid var(--warn); }
-  .tiles { display: grid; grid-template-columns: repeat(3, 1fr) 1.9fr; gap: 14px; margin: 18px 0 26px; }
-  .tile .big { font-family: var(--serif); font-size: 2rem; line-height: 1.1; }
-  .tile .lab { font-size: 0.82rem; color: var(--ink-soft); }
-  .dist { display: flex; align-items: flex-end; gap: 8px; height: 74px; margin-top: 6px; }
-  .dist div { flex: 1; text-align: center; font-size: 0.78rem; color: var(--ink-soft); display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
-  .dist i { display: block; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; }
-  .dist b { font-weight: 600; color: var(--ink); }
-
   .qcard { margin-bottom: 18px; }
-  .qhead { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-bottom: 4px; }
-  .qhead .pct { font-family: var(--serif); font-size: 1.7rem; white-space: nowrap; }
-  .qhead .pct small { font: 0.85rem var(--sans); color: var(--ink-soft); }
-  .task { color: var(--ink-soft); font-size: 0.93rem; margin: 0 0 12px; }
-  .qbody { display: grid; grid-template-columns: 1.25fr 1fr; gap: 22px; align-items: start; }
-  .plot { border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: #fff; }
-  .plot canvas { display: block; width: 100%; }
-  .how { font-size: 0.84rem; color: var(--ink-soft); margin: 6px 0 0; }
-  table.err { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
-  table.err td { padding: 5px 0; vertical-align: top; }
-  table.err td.n { text-align: right; white-space: nowrap; padding-left: 10px; font-variant-numeric: tabular-nums; width: 1%; }
-  table.err .bar { height: 5px; border-radius: 3px; margin-top: 4px; background: var(--pos); }
-  table.err tr.ok .bar { background: var(--accent); }
-  table.err tr.ok td { font-weight: 600; }
-  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 26px; }
-  .panels h4 { font: 600 0.98rem var(--sans); margin: 0 0 8px; display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
-  .panels h4 span { font-family: var(--serif); font-size: 1.15rem; font-weight: 400; white-space: nowrap; }
-  .panels h4 small { font: 0.8rem var(--sans); color: var(--ink-soft); }
-  table.blanks { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
-  table.blanks th { text-align: left; font-weight: 600; color: var(--ink-soft); font-size: 0.78rem; padding: 0 8px 6px 0; }
-  table.blanks td { padding: 5px 8px 5px 0; border-top: 1px solid var(--rule); vertical-align: middle; }
-  table.blanks .n { text-align: right; font-variant-numeric: tabular-nums; }
-  table.blanks .card-cell math { font-size: 1em; }
-  @media (max-width: 800px) { .panels { grid-template-columns: 1fr; } }
-  .key { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.86rem; color: var(--ink-soft); margin: 0 0 16px; }
-  .key i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; }
-  @media (max-width: 800px) { .tiles { grid-template-columns: 1fr 1fr; } .qbody { grid-template-columns: 1fr; } }
-  /* embedded beside the student page */
-  body.embed .topbar, body.embed h1, body.embed .lead, body.embed footer.site { display: none; }
-  body.embed { font-size: 15px; background: #fff; }
-  body.embed main { padding: 12px 12px 4px; }
-  body.embed .card { padding: 14px; }
-  body.embed .tiles { gap: 10px; margin: 12px 0 16px; }
-  body.embed .tiles .card:last-child { grid-column: 1 / -1; }
-  body.embed .tile .big { font-size: 1.25rem; }
-  body.embed .tile .lab { font-size: 0.76rem; }
-  body.embed .qhead { flex-direction: column; gap: 2px; }
-  body.embed .qhead h2 { font-size: 1.15rem; }
-  body.embed .key { gap: 8px 14px; font-size: 0.8rem; }
-  @media (max-width: 800px) { body.embed .tiles { grid-template-columns: repeat(3, 1fr); } }
 </style>
 </head>
 <body>
@@ -86,7 +39,7 @@
   </p>
   <div id="questions"></div>
 
-  <footer class="site"><p>Each answer is marked by fixed rules (direction and relative size within set limits), the same rules on the student's page and here. <a href="/before/checkin-trial/">Open the check-in as a student</a>.</p></footer>
+  <footer class="site"><p>Each answer is marked by fixed rules (direction and relative size within set limits), the same rules on the student's page and here. <a href="/before/">Open the check-in as a student</a>.</p></footer>
 </main>
 <script type="module" src="/teacher/teacher.js"></script>
 </body>

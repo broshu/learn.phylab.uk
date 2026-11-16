@@ -11,6 +11,7 @@ const len = (v) => Math.hypot(v[0], v[1]);
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
 const M = (s) => `<math>${s}</math>`;
 const D = (s) => `<math><mstyle displaystyle="true">${s}</mstyle></math>`;
+const MD = (s) => `<math display="block">${s}</math>`;
 
 export function rodGravity() {
   const ratio = pick([2, 3]);                          // L / r
@@ -80,7 +81,7 @@ export function rodGravity() {
       <p>If all the mass of the rod sat at its centre, the force would be ${D("<msub><mi>F</mi><mtext>point</mtext></msub><mo>=</mo>" + frac("<mrow><mi>G</mi><mi>M</mi><mi>m</mi></mrow>", "<msup><mi>r</mi><mn>2</mn></msup>"))}. For this rod, ${M(`<mi>L</mi><mo>=</mo>${ratio === 1 ? "" : `<mn>${ratio}</mn>`}<mi>r</mi>`)}. Work out ${M("<mi>F</mi><mo>/</mo><msub><mi>F</mi><mtext>point</mtext></msub>")} and drag the marker to it.</p>
       <div class="fieldbox"><canvas data-c="c"></canvas></div>
       <div class="readout" data-r="c">Drag the marker.</div>
-      <div data-s="explore"></div>`;
+`;
 
     // Part A, first arrow
     boardA = new Board(q('[data-c="a"]'), { w: 9, h: 7, grid: false, onChange: () => { q('[data-a="lock"]').disabled = lockedA || len(sub([tipA.x, tipA.y], ball)) < 0.4; onChange(); } });
@@ -164,8 +165,8 @@ export function rodGravity() {
   }
 
   /** After submitting: the same picture as a simulation. Cut the rod into pieces and add up their pulls. */
-  function explore() {
-    const box = q('[data-s="explore"]');
+  function explore(box) {
+    const qq = (sel) => box.querySelector(sel);
     box.innerHTML = `
       <h3 class="part">Try it: cut the rod into pieces</h3>
       <p>Each piece is treated as a point mass. Thin arrows show the pull of each piece (drawn larger so that you can see them); the thick arrow is their sum.</p>
@@ -176,7 +177,7 @@ export function rodGravity() {
       </div>
       <div class="readout" data-r="x"></div>`;
     const state = { n: 1, q: ratio };
-    const bx = new Board(q('[data-c="x"]'), { w: 12, h: 7, grid: false });
+    const bx = new Board(qq('[data-c="x"]'), { w: 12, h: 7, grid: false });
     bx.locked = true;
     const centre = [3, 3.5], r = 4.2, at = [centre[0] + r, centre[1]];
     bx.paint = (b, ctx) => {
@@ -195,11 +196,11 @@ export function rodGravity() {
       arrow(ctx, ...b.px(...p), ...b.px(p[0] - fx * 1.5, p[1]), RIGHT, 4);
       const [px, py] = b.px(...p); ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(px, py, 8, 0, 7); ctx.fill();
       const Fp = M("<msub><mi>F</mi><mtext>point</mtext></msub>");
-      q('[data-r="x"]').innerHTML = `Sum of the ${state.n} piece${state.n === 1 ? "" : "s"}: ${fx.toFixed(3)} ${Fp} &nbsp;·&nbsp; from the integral: ${rodFactor(state.q).toFixed(3)} ${Fp}`;
+      qq('[data-r="x"]').innerHTML = `Sum of the ${state.n} piece${state.n === 1 ? "" : "s"}: ${fx.toFixed(3)} ${Fp} &nbsp;·&nbsp; from the integral: ${rodFactor(state.q).toFixed(3)} ${Fp}`;
     };
     const sync = () => {
-      state.n = 2 ** +q('[data-i="n"]').value; state.q = +q('[data-i="q"]').value;
-      q('[data-v="n"]').textContent = state.n; q('[data-v="q"]').innerHTML = M(`<mi>L</mi><mo>=</mo><mn>${state.q.toFixed(2)}</mn><mi>r</mi>`);
+      state.n = 2 ** +qq('[data-i="n"]').value; state.q = +qq('[data-i="q"]').value;
+      qq('[data-v="n"]').textContent = state.n; qq('[data-v="q"]').innerHTML = M(`<mi>L</mi><mo>=</mo><mn>${state.q.toFixed(2)}</mn><mi>r</mi>`);
       bx.draw();
     };
     box.querySelectorAll("input").forEach((i) => i.addEventListener("input", sync));
@@ -207,7 +208,28 @@ export function rodGravity() {
   }
 
   return {
-    id: "rod", topic: "The pull of a rod: adding up small pieces", custom: true, mount,
+    id: "rod", topic: "The pull of a rod: adding up small pieces", custom: true, mount, explore,
+    /** Which parts of the answer were right, for the Learn step. */
+    partsHtml(res) {
+      const names = { piece: "A1 · pull of one piece", pair: "A2 · sum of two pulls", integral: "B · the integral", ratio: "C · the ratio" };
+      return `<ul class="parts">${Object.entries(names).map(([k, n]) => { const x = res.parts ? res.parts[k] : { skipped: true }; return `<li class="${x.ok ? "ok" : x.skipped ? "skip" : "no"}">${n}: ${x.ok ? "right" : x.skipped ? "not answered" : "not right"}</li>`; }).join("")}</ul>`;
+    },
+    solution: () => {
+      const L2 = `<msup><mrow><mo>(</mo><mi>L</mi><mo>/</mo><mn>2</mn><mo>)</mo></mrow><mn>2</mn></msup>`;
+      const ints = (lo, hi, body) => `<msubsup><mo>&#x222B;</mo>${lo}${hi}</msubsup>${body}`;
+      const lo = `<mrow><mo>&#x2212;</mo><mi>L</mi><mo>/</mo><mn>2</mn></mrow>`, hi = `<mrow><mo>+</mo><mi>L</mi><mo>/</mo><mn>2</mn></mrow>`;
+      return `<p><strong>A1 · One piece.</strong> Gravity between two point masses acts along the line joining them, so the pull of the highlighted piece points from the ball straight at that piece, slanting ${pieceY > yc ? "upward" : "downward"} toward it.</p>
+        <p><strong>A2 · Two pieces.</strong> The two pieces are equally far from the ball, so their pulls are equally strong, one slanting up and one slanting down by the same angle. The parts along the rod cancel; the parts toward the rod add. The sum points straight at the centre of the rod, and is a little shorter than the two arrows laid end to end.</p>
+        <p><strong>B · The integral.</strong> A uniform rod has the same mass on every centimetre: ${M(`<mi>&#x3BB;</mi><mo>=</mo>${frac("<mi>M</mi>", "<mi>L</mi>")}`)}. A piece of length ${M("<mi>d</mi><mi>y</mi>")} at height ${M("<mi>y</mi>")} has mass and distance from the ball</p>
+        ${MD(`<mi>d</mi><mi>m</mi><mo>=</mo><mfrac><mi>M</mi><mi>L</mi></mfrac><mi>d</mi><mi>y</mi><mspace width="2em"/><mi>d</mi><mo>=</mo>${root}`)}
+        <p>Its pull has size ${M(`<mstyle displaystyle="true">${frac("<mrow><mi>G</mi><mi>m</mi><mspace width='0.1em'/><mi>d</mi><mi>m</mi></mrow>", "<mrow><msup><mi>y</mi><mn>2</mn></msup><mo>+</mo><msup><mi>r</mi><mn>2</mn></msup></mrow>")}</mstyle>`)}. By the symmetry of A2, only the part toward the rod survives. That part is the fraction ${M(`<mstyle displaystyle="true">${frac("<mi>r</mi>", root)}</mstyle>`)} of the pull (the cosine of the angle between the pull and the line to the centre). The pieces run from one end of the rod to the other:</p>
+        ${MD(`<mi>F</mi><mo>=</mo>${ints(lo, hi, `<mfrac><mrow><mi>G</mi><mi>m</mi></mrow><mrow><msup><mi>y</mi><mn>2</mn></msup><mo>+</mo><msup><mi>r</mi><mn>2</mn></msup></mrow></mfrac><mo>&#xD7;</mo><mfrac><mi>r</mi>${root}</mfrac><mo>&#xD7;</mo><mfrac><mi>M</mi><mi>L</mi></mfrac><mi>d</mi><mi>y</mi>`)}<mo>=</mo><mfrac><mrow><mi>G</mi><mi>M</mi><mi>m</mi><mi>r</mi></mrow><mi>L</mi></mfrac>${ints(lo, hi, `<mfrac><mrow><mi>d</mi><mi>y</mi></mrow><msup><mrow><mo>(</mo><msup><mi>y</mi><mn>2</mn></msup><mo>+</mo><msup><mi>r</mi><mn>2</mn></msup><mo>)</mo></mrow><mrow><mn>3</mn><mo>/</mo><mn>2</mn></mrow></msup></mfrac>`)}`)}
+        <p>The integral is a standard one, ${M(`<mstyle displaystyle="true"><mo>&#x222B;</mo><mfrac><mrow><mi>d</mi><mi>y</mi></mrow><msup><mrow><mo>(</mo><msup><mi>y</mi><mn>2</mn></msup><mo>+</mo><msup><mi>r</mi><mn>2</mn></msup><mo>)</mo></mrow><mrow><mn>3</mn><mo>/</mo><mn>2</mn></mrow></msup></mfrac><mo>=</mo><mfrac><mi>y</mi><mrow><msup><mi>r</mi><mn>2</mn></msup>${root}</mrow></mfrac></mstyle>`)}, and gives</p>
+        ${MD(`<mi>F</mi><mo>=</mo><mfrac><mrow><mi>G</mi><mi>M</mi><mi>m</mi></mrow><mrow><mi>r</mi><msqrt><msup><mi>r</mi><mn>2</mn></msup><mo>+</mo>${L2}</msqrt></mrow></mfrac>`)}
+        <p><strong>C · The ratio.</strong> Divide by ${M(`<msub><mi>F</mi><mtext>point</mtext></msub><mo>=</mo><mi>G</mi><mi>M</mi><mi>m</mi><mo>/</mo><msup><mi>r</mi><mn>2</mn></msup>`)} and put in ${M(`<mi>L</mi><mo>=</mo><mn>${ratio}</mn><mi>r</mi>`)}, so that ${M(`<mi>L</mi><mo>/</mo><mn>2</mn><mo>=</mo>${ratio === 2 ? "<mi>r</mi>" : "<mn>1.5</mn><mi>r</mi>"}`)}:</p>
+        ${MD(`<mfrac><mi>F</mi><msub><mi>F</mi><mtext>point</mtext></msub></mfrac><mo>=</mo><mfrac><mi>r</mi><msqrt><msup><mi>r</mi><mn>2</mn></msup><mo>+</mo>${L2}</msqrt></mfrac><mo>=</mo><mfrac><mn>1</mn><msqrt><mn>1</mn><mo>+</mo>${ratio === 2 ? "<mn>1</mn>" : "<mn>2.25</mn>"}</msqrt></mfrac><mo>&#x2248;</mo><mn>${k.toFixed(2)}</mn>`)}
+        <p>Less than 1: most of the rod is farther from the ball than its centre is, and pulls partly sideways.</p>`;
+    },
     ready: () => lockedA && len(sub([tipB.x, tipB.y], ball)) > 0.3 && Object.values(blanks).every(Boolean) && mark.touched,
     judge: () => judgeRod({ ratio, toPiece, toCentre, pulls }, {
       va: len(sub([tipA.x, tipA.y], ball)) > 0.4 ? sub([tipA.x, tipA.y], ball) : null,
@@ -228,7 +250,6 @@ export function rodGravity() {
       for (const b of [boardA, boardB, boardC]) b.draw();
       q('[data-s="pair"]').hidden = false;
       el.querySelectorAll(".blank").forEach((b) => { if (blanks[b.dataset.b]) b.classList.add(blanks[b.dataset.b] === ROD_KEY[b.dataset.b] ? "right" : "wrong"); });
-      explore();
     },
     review: (res) => {
       const p = res.parts, lines = [];

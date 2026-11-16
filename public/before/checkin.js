@@ -18,6 +18,15 @@ const STORE = "learn.phylab.uk/checkin-trial/v2";
 const M = (s) => `<math>${s}</math>`;
 const V = (l) => M(`<mover><mi>${l}</mi><mo>&#x2192;</mo></mover>`);
 const draw = (b, ctx, from, to, color, width, dash) => arrow(ctx, ...b.px(...from), ...b.px(...to), color, width, dash);
+// numbers in MathML: a proper minus sign, and at most the decimals asked for
+const mn = (x, d = 2) => { const t = String(+(+x).toFixed(d)); return t.startsWith("-") ? `<mo>&#x2212;</mo><mn>${t.slice(1)}</mn>` : `<mn>${t}</mn>`; };
+const pm = (x) => (x < 0 ? `<mo>(</mo>${mn(x)}<mo>)</mo>` : mn(x)); // a negative number after a plus sign goes in brackets
+const pair = (a, b) => `<mo>(</mo>${mn(a)}<mo>,</mo>${mn(b)}<mo>)</mo>`;
+const vec = (l) => `<mover><mi>${l}</mi><mo>&#x2192;</mo></mover>`;
+const MD = (s) => `<math display="block">${s}</math>`;
+const sq = (s) => `<msqrt>${s}</msqrt>`;
+const fr = (a, b) => `<mfrac>${a}${b}</mfrac>`;
+const k4 = fr("<mn>1</mn>", "<mrow><mn>4</mn><mi>&#x3C0;</mi><msub><mi>&#x3B5;</mi><mn>0</mn></msub></mrow>");
 
 // ---------- 1 · adding two vectors ----------
 function vectorSum() {
@@ -57,6 +66,13 @@ function vectorSum() {
     review: () => `<p>Vectors add component by component: add the horizontal parts, then add the vertical parts. On a drawing, slide ${V("B")} so that it starts at the tip of ${V("A")}; the sum runs from the start of ${V("A")} to the tip of the moved ${V("B")}.</p>
       <p>The length of the sum is not the two lengths added together, unless the vectors point the same way.</p>`,
     legend: "Dashed: B moved to the tip of A.",
+    solution: () => `<p>Read the components off the grid, counting squares to the right and upward as positive:</p>
+      ${MD(`${vec("A")}<mo>=</mo>${pair(...A)}<mspace width="2em"/>${vec("B")}<mo>=</mo>${pair(...B)}`)}
+      <p>Add the horizontal components, then the vertical ones:</p>
+      ${MD(`${vec("A")}<mo>+</mo>${vec("B")}<mo>=</mo><mo>(</mo>${mn(A[0])}<mo>+</mo>${pm(B[0])}<mo>,</mo><mspace width="0.3em"/>${mn(A[1])}<mo>+</mo>${pm(B[1])}<mo>)</mo><mo>=</mo>${pair(...C)}`)}
+      <p>So the arrow runs from the common starting point ${mn(C[0]) === "<mn>0</mn>" ? "" : `${Math.abs(C[0])} square${Math.abs(C[0]) === 1 ? "" : "s"} ${C[0] > 0 ? "right" : "left"}`}${C[0] && C[1] ? " and " : ""}${C[1] ? `${Math.abs(C[1])} square${Math.abs(C[1]) === 1 ? "" : "s"} ${C[1] > 0 ? "up" : "down"}` : ""}. Its length is</p>
+      ${MD(`<mrow><mo>|</mo>${vec("A")}<mo>+</mo>${vec("B")}<mo>|</mo></mrow><mo>=</mo>${sq(`<msup>${mn(C[0])}<mn>2</mn></msup><mo>+</mo><msup>${mn(C[1])}<mn>2</mn></msup>`)}<mo>&#x2248;</mo>${mn(len(C), 1)}<mtext>&#xA0;squares</mtext>`)}
+      <p>Compare: ${M(`<mo>|</mo>${vec("A")}<mo>|</mo><mo>+</mo><mo>|</mo>${vec("B")}<mo>|</mo><mo>&#x2248;</mo>${mn(len(A), 1)}<mo>+</mo>${mn(len(B), 1)}<mo>=</mo>${mn(len(A) + len(B), 1)}`)} squares. The sum is shorter, because the two vectors do not point the same way.</p>`,
   };
 }
 
@@ -96,6 +112,11 @@ function pointChargeField() {
     review: () => `<p>The electric field of a point charge points straight away from a positive charge and straight toward a negative charge. Its strength depends only on the distance from the charge:</p>
       <math display="block"><mi>E</mi><mo>=</mo><mfrac><mn>1</mn><mrow><mn>4</mn><mi>&#x3C0;</mi><msub><mi>&#x3B5;</mi><mn>0</mn></msub></mrow></mfrac><mfrac><mrow><mo>|</mo><mi>q</mi><mo>|</mo></mrow><msup><mi>r</mi><mn>2</mn></msup></mfrac></math>
       <p>So two points at the same distance have fields of the same strength, and at twice the distance the field is one quarter as strong.</p>`,
+    solution: () => `<p><strong>Direction.</strong> The charge is ${sign > 0 ? "positive, so at every point the field points straight away from it" : "negative, so at every point the field points straight toward it"}, along the line from the charge to the point.</p>
+      <p><strong>Points 1 and 3.</strong> They are the same distance ${M("<mi>r</mi>")} from the charge, so the two arrows have the same length. Call it ${M("<mi>&#x2113;</mi>")}.</p>
+      <p><strong>Point 2.</strong> It is at ${M("<mn>2</mn><mi>r</mi>")}. Compare the field there with the field at ${M("<mi>r</mi>")}:</p>
+      ${MD(`<mfrac><mrow><mi>E</mi><mo>(</mo><mn>2</mn><mi>r</mi><mo>)</mo></mrow><mrow><mi>E</mi><mo>(</mo><mi>r</mi><mo>)</mo></mrow></mfrac><mo>=</mo><mfrac><msup><mi>r</mi><mn>2</mn></msup><msup><mrow><mo>(</mo><mn>2</mn><mi>r</mi><mo>)</mo></mrow><mn>2</mn></msup></mfrac><mo>=</mo><mfrac><mn>1</mn><mn>4</mn></mfrac>`)}
+      <p>So the arrow at point 2 is a quarter as long as the other two: ${M("<mi>&#x2113;</mi><mo>/</mo><mn>4</mn>")}. Your arrows only had to be in the right directions, equal at points 1 and 3, and less than half as long at point 2.</p>`,
   };
 }
 
@@ -144,6 +165,13 @@ function coulomb() {
     review: (res) => `<p>At the distance you chose, the force would be about ${M(`<mn>${res.force.toFixed(1)}</mn><mi>F</mi>`)}.</p>
       <math display="block"><mi>F</mi><mo>=</mo><mfrac><mn>1</mn><mrow><mn>4</mn><mi>&#x3C0;</mi><msub><mi>&#x3B5;</mi><mn>0</mn></msub></mrow></mfrac><mfrac><mrow><mo>|</mo><msub><mi>q</mi><mtext>A</mtext></msub><mo>|</mo><mo>|</mo><msub><mi>q</mi><mtext>B</mtext></msub><mo>|</mo></mrow><msup><mi>r</mi><mn>2</mn></msup></mfrac></math>
       <p>Halving one charge halves the force. To bring the force back, ${M("<msup><mi>r</mi><mn>2</mn></msup>")} must also be halved, so the distance has to become ${M('<mstyle displaystyle="true"><mfrac><mi>r</mi><msqrt><mn>2</mn></msqrt></mfrac></mstyle>')}, about 0.71 of what it was. Halving the distance would be too much: that makes the force four times larger, not two.</p>`,
+    solution: () => `<p>Before, the spheres were ${r0} cm apart. Write the charges as ${M("<msub><mi>q</mi><mtext>A</mtext></msub>")} and ${M("<msub><mi>q</mi><mtext>B</mtext></msub>")}:</p>
+      ${MD(`<mi>F</mi><mo>=</mo>${k4}<mfrac><mrow><msub><mi>q</mi><mtext>A</mtext></msub><msub><mi>q</mi><mtext>B</mtext></msub></mrow><msup><mrow><mo>(</mo><mn>${r0}</mn><mtext>&#xA0;cm</mtext><mo>)</mo></mrow><mn>2</mn></msup></mfrac>`)}
+      <p>Now B carries ${M("<msub><mi>q</mi><mtext>B</mtext></msub><mo>/</mo><mn>2</mn>")}. At the new distance ${M("<msup><mi>r</mi><mo>&#x2032;</mo></msup>")} the force is to be ${M("<mi>F</mi>")} again:</p>
+      ${MD(`${k4}<mfrac><mrow><msub><mi>q</mi><mtext>A</mtext></msub><mo>(</mo><msub><mi>q</mi><mtext>B</mtext></msub><mo>/</mo><mn>2</mn><mo>)</mo></mrow><msup><msup><mi>r</mi><mo>&#x2032;</mo></msup><mn>2</mn></msup></mfrac><mo>=</mo>${k4}<mfrac><mrow><msub><mi>q</mi><mtext>A</mtext></msub><msub><mi>q</mi><mtext>B</mtext></msub></mrow><msup><mrow><mo>(</mo><mn>${r0}</mn><mtext>&#xA0;cm</mtext><mo>)</mo></mrow><mn>2</mn></msup></mfrac>`)}
+      <p>Everything except the distances cancels, leaving</p>
+      ${MD(`<msup><msup><mi>r</mi><mo>&#x2032;</mo></msup><mn>2</mn></msup><mo>=</mo><mfrac><msup><mrow><mo>(</mo><mn>${r0}</mn><mtext>&#xA0;cm</mtext><mo>)</mo></mrow><mn>2</mn></msup><mn>2</mn></mfrac><mspace width="1.5em"/><msup><mi>r</mi><mo>&#x2032;</mo></msup><mo>=</mo><mfrac><mrow><mn>${r0}</mn><mtext>&#xA0;cm</mtext></mrow><msqrt><mn>2</mn></msqrt></mfrac><mo>&#x2248;</mo><mn>${target.toFixed(1)}</mn><mtext>&#xA0;cm</mtext>`)}
+      <p>Sphere B goes to about ${target.toFixed(1)} cm from A. Anything from ${(0.62 * r0).toFixed(1)} cm to ${(0.8 * r0).toFixed(1)} cm was accepted, because the sphere is placed by dragging.</p>`,
   };
 }
 
@@ -228,6 +256,15 @@ function forceInField() {
     review: () => `<p>A charge ${M("<mi>q</mi>")} at a point where the field is ${V("E")} feels the force</p>
       <math display="block"><mover><mi>F</mi><mo>&#x2192;</mo></mover><mo>=</mo><mi>q</mi><mover><mi>E</mi><mo>&#x2192;</mo></mover></math>
       <p>Only the field at the droplet's own position matters. The force on a positive charge is along that field; the force on a negative charge is opposite to it. The two droplets carry charges of the same size, so the larger force is on the one sitting where the field is stronger, whatever its sign.</p>`,
+    solution: () => {
+      const k = len(strong.e) / len(weak.e), at = (s) => (s.p === strong.p ? "stronger" : "weaker");
+      const [P, N] = spots;
+      return `<p><strong>Read the field at each droplet.</strong> Look at the grey arrows right around each droplet: they give the direction of ${V("E")} there. The ${M("<mo>+</mo><mi>q</mi>")} droplet sits where the field is ${at(P)}; the ${M("<mo>&#x2212;</mo><mi>q</mi>")} droplet where it is ${at(N)}. At these two spots the field strengths differ by a factor of about ${k.toFixed(1)}.</p>
+        <p><strong>Directions.</strong> From ${M(`${vec("F")}<mo>=</mo><mi>q</mi>${vec("E")}`)}: the force on ${M("<mo>+</mo><mi>q</mi>")} points the same way as the grey arrows at its spot. The force on ${M("<mo>&#x2212;</mo><mi>q</mi>")} points the opposite way to the grey arrows at its spot. Only the field at a droplet's own position matters, not the field anywhere else, and not the charges in the cloud directly.</p>
+        <p><strong>Sizes.</strong> Both droplets carry charge of size ${M("<mi>q</mi>")}, so</p>
+        ${MD(`<mfrac><msub><mi>F</mi><mtext>stronger field</mtext></msub><msub><mi>F</mi><mtext>weaker field</mtext></msub></mfrac><mo>=</mo><mfrac><mrow><mi>q</mi><msub><mi>E</mi><mtext>stronger</mtext></msub></mrow><mrow><mi>q</mi><msub><mi>E</mi><mtext>weaker</mtext></msub></mrow></mfrac><mo>&#x2248;</mo><mn>${k.toFixed(1)}</mn>`)}
+        <p>So the arrow on the ${M(`<mo>${P.p === strong.p ? "+" : "&#x2212;"}</mo><mi>q</mi>`)} droplet should be clearly the longer one. It was enough for your directions to be within 30° and for that arrow to be at least 1.25 times as long.</p>`;
+    },
   };
 }
 
@@ -238,18 +275,20 @@ function forceInField() {
  * options: reviewer (show the table of what is recorded), onSubmit(summary), onRestart()
  */
 export function startCheckin(options = {}) {
-  const { reviewer = false, onSubmit = () => {}, onRestart = () => {} } = options;
+  // wrap(id, html): lets the page put each question inside its own layout (the demonstration puts the teacher's card beside it)
+  // inline: show the result and refreshers under the questions (the reviewer page); the lesson page shows them in its Learn step instead
+  const { reviewer = false, inline = true, wrap = (id, html) => html, onSubmit = () => {}, onRestart = () => {} } = options;
   let items = [], results = null, startedAt = Date.now();
 
   function build() {
     results = null; startedAt = Date.now();
     items = [vectorSum(), pointChargeField(), coulomb(), forceInField(), rodGravity()];
-    $("items").innerHTML = items.map((it, i) => it.custom ? `<div class="card q" id="q-${it.id}"></div>` : `
+    $("items").innerHTML = items.map((it, i) => wrap(it.id, it.custom ? `<div class="card q" id="q-${it.id}"></div>` : `
       <div class="card q" id="q-${it.id}">
         <p class="stem"><span class="n">${i + 1}.</span>${it.prompt}</p>
         <div class="fieldbox"><canvas id="cv-${it.id}"></canvas></div>
         <div class="readout" id="ro-${it.id}"></div>
-      </div>`).join("");
+      </div>`)).join("");
     items.forEach((it, i) => {
       if (it.custom) { it.mount($("q-" + it.id), i + 1, check); return; }
       it.board = new Board($("cv-" + it.id), {
@@ -284,6 +323,10 @@ export function startCheckin(options = {}) {
     } catch { /* storage unavailable */ }
     const right = results.filter((r) => r.ok).length, skipped = results.filter((r) => r.skipped).length;
     const missed = results.filter((r) => !r.ok && !r.skipped);
+    results.filter((r) => r.it.custom && !r.skipped).forEach((r) => r.it.showResult(r));
+    $("submit").hidden = true; $("again").hidden = false; $("left").textContent = "";
+    const summary = { score: right, total: items.length, skipped, missed: missed.map((r) => r.it.topic), results: kept, detail: results };
+    if (!inline) { onSubmit(summary); return; }
     $("result").innerHTML = `
       <div class="card">
         <p class="score">You answered ${right} of ${items.length} correctly${skipped ? ` and left ${skipped} unanswered` : ""}.</p>
@@ -293,10 +336,10 @@ export function startCheckin(options = {}) {
         <div class="card review">
           <span class="tag">Refresher</span><h3>${r.it.topic}</h3>
           ${r.it.review(r)}
-          ${r.it.custom ? "" : `<div class="fieldbox"><canvas id="rv-${r.it.id}"></canvas></div>`}
+          ${r.it.custom ? `<div id="rv-x-${r.it.id}"></div>` : `<div class="fieldbox"><canvas id="rv-${r.it.id}"></canvas></div>`}
           ${r.it.legend ? `<p class="cap">${r.it.legend}</p>` : ""}
         </div>`).join("")}`;
-    results.filter((r) => r.it.custom && !r.skipped).forEach((r) => r.it.showResult(r));
+    missed.filter((r) => r.it.custom).forEach((r) => r.it.explore($("rv-x-" + r.it.id)));
     missed.filter((r) => !r.it.custom).forEach((r) => {
       const b = new Board($("rv-" + r.it.id), { w: r.it.w, h: r.it.h, grid: r.it.grid, paint: (bd, ctx) => r.it.paint(bd, ctx, true) });
       b.locked = true; b.draw();
@@ -308,13 +351,13 @@ export function startCheckin(options = {}) {
         ${results.map((r) => `<tr><td>${r.it.topic}</td><td>${r.ok ? "Correct" : r.skipped ? "Not answered" : "Not correct"}</td><td>${r.ok || r.skipped ? "—" : r.error}</td><td><code>${JSON.stringify(r.data).replace(/[{}"]/g, "").replace(/,/g, ", ").replace(/:/g, ": ")}</code></td></tr>`).join("")}
       </table>
       <p class="cap">This submission now also appears in the <a href="/teacher/">teacher view</a>, next to the sample class.</p></details>`;
-    $("submit").hidden = true; $("again").hidden = false; $("left").textContent = "";
-    onSubmit({ score: right, total: items.length, skipped, missed: missed.map((r) => r.it.topic), results: kept });
+    onSubmit(summary);
     $("result").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   $("submit").addEventListener("click", submit);
-  $("again").addEventListener("click", () => { build(); onRestart(); $("items").scrollIntoView({ block: "start" }); });
+  $("again").addEventListener("click", () => restart());
+  function restart() { build(); onRestart(); }
   // reviewer only: fill in a correct answer everywhere, to see the all-correct result
   if ($("fill")) $("fill").addEventListener("click", () => {
     if (results) return;
@@ -322,4 +365,5 @@ export function startCheckin(options = {}) {
     check();
   });
   build();
+  return { restart };
 }
