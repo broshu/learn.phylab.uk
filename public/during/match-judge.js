@@ -59,9 +59,9 @@ export function judgeMatch(placed) {
     else if (deg > TOL.deg)
       it = { status: "turn", msg: `Your ${NAME[t.kind]} is in the right place but turned about ${deg}° the wrong way. Near a plate, the lines meet it square on.` };
     else it = { status: "ok", msg: t.kind === "point" ? `${t.q > 0 ? "Positive" : "Negative"} point charge: right.` : `${NAME[t.kind][0].toUpperCase() + NAME[t.kind].slice(1)}: right.` };
-    items.push({ kind: t.kind, cm, deg, ...it });
+    items.push({ kind: t.kind, cm, deg, ...it, obj: p }); // obj: which of the placed objects this is about
   }
-  for (const p of pool) items.push({ kind: p.kind, status: "extra", msg: `There is a ${NAME[p.kind]} on your table that the field does not need.` });
+  for (const p of pool) items.push({ kind: p.kind, obj: p, status: "extra", msg: `There is a ${NAME[p.kind]} on your table that the field does not need.` });
   return { ok: items.every((i) => i.status === "ok"), items };
 }
 
