@@ -773,6 +773,7 @@ export function startSpace3D(root, { rec, mode: task = "explore", target = [], j
         }
         if (goal && goal.lines) { const t = tubes(goal.lines, TARGET_LINE.screen); if (t) g.add(t); }
         if (shown && mine.lines) { const t = tubes(mine.lines, LINE.screen); if (t) g.add(t); }
+        g.updateMatrixWorld(true); // the exporter reads each object's matrix: without this every object sits at the centre
         const buf = await new USDZExporter().parseAsync(g, { quickLookCompatible: true });
         releaseQL();
         qlURL = URL.createObjectURL(new Blob([buf], { type: "model/vnd.usdz+zip" }));
