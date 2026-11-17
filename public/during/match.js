@@ -12,20 +12,22 @@ const OK = "#0d6b5f", BAD = "#c0392b", EXTRA = "#d98200";
 // ---------- a simulated small class, judged by the same code as a real student ----------
 // The 3D match is meant for headsets, so the class is small: 10 students, each with a typical result.
 function makeClass() {
-  const r = rng(2311), [P, L] = TARGET, jit = (s) => (r() - 0.5) * 2 * s;
+  const r = rng(2311), [P, N, L] = TARGET, jit = (s) => (r() - 0.5) * 2 * s;
   // what each student did: matched, or the one thing they got wrong (made-up but plausible)
-  const plan = ["ok", "ok", "ok", "ok", "plateSign", "plateSign", "pointSize", "pointNear", "plateFlat", "extraRod"];
-  const checksFor = [1, 2, 1, 3, 2, 3, 2, 1, 2, 2];
+  const plan = ["ok", "ok", "ok", "negSize", "negSize", "plateSign", "noNeg", "posSize", "plateFlat", "negFar"];
+  const checksFor = [2, 3, 2, 3, 2, 3, 2, 2, 1, 2];
   return plan.map((what, i) => {
-    const point = { kind: "point", q: P.q, x: P.x + jit(0.02), y: P.y + jit(0.02), z: P.z + jit(0.02) };
+    const pos = { kind: "point", q: P.q, x: P.x + jit(0.02), y: P.y + jit(0.02), z: P.z + jit(0.02) };
+    const neg = { kind: "point", q: N.q, x: N.x + jit(0.02), y: N.y + jit(0.02), z: N.z + jit(0.02) };
     const plate = { kind: "plate", q: L.q, x: L.x + jit(0.02), y: L.y + jit(0.015), z: L.z + jit(0.02) };
     let tilt = L.tilt + jit(10), turn = L.turn + jit(10);
-    const placed = [point, plate];
+    const placed = [pos, neg, plate];
+    if (what === "negSize") neg.q = -2;                         // the most likely slip: −2q, without counting lines
+    if (what === "posSize") pos.q = 1;
     if (what === "plateSign") plate.q = -L.q;
-    if (what === "pointSize") point.q = 1;
-    if (what === "pointNear") { point.x += 0.07; point.z += jit(0.03); }
+    if (what === "noNeg") placed.splice(1, 1);                  // missed that some lines end on a second charge
     if (what === "plateFlat") tilt = 0;
-    if (what === "extraRod") placed.push({ kind: "rod", q: 3, x: 0.16, y: 0.1, z: -0.17, axis: axisOf("rod", 0, 0) });
+    if (what === "negFar") { neg.y -= 0.08; neg.x += 0.03; }
     plate.axis = axisOf("plate", tilt, turn); plate.corners = plateCorners(plate.x, plate.z, tilt, turn);
     return { id: "Student " + (i + 1), placed, result: judgeMatch(placed), checks: checksFor[i] };
   });
@@ -50,7 +52,7 @@ export function startMatch({ student, teacher, rec }) {
   function feedback(r, placed) {
     if (!placed.length) return `<p class="note warn" style="margin:0"><strong>The table is empty.</strong> Take objects from the trays and place them to make the orange field.</p>`;
     const head = r.ok
-      ? `<p class="note" style="margin:0"><strong>Matched.</strong> Your field (dark lines) lies on the orange one. The orange field comes from a point charge +2<i>q</i> in front of a negatively charged plate.</p>`
+      ? `<p class="note" style="margin:0"><strong>Matched.</strong> Your field (dark lines) lies on the orange one. The orange field comes from a point charge +2<i>q</i>, a point charge &minus;<i>q</i> and a negatively charged plate: half of the lines from +2<i>q</i> end on &minus;<i>q</i>, the other half on the plate.</p>`
       : `<p class="note warn" style="margin:0"><strong>Not yet.</strong> Your field is drawn in dark lines over the orange one. Change your objects, then check again; your lines hide while you change them.</p>`;
     const items = r.items.filter((i) => !r.ok || i.status !== "ok").map((i) =>
       `<li><b style="color:${i.status === "ok" ? OK : i.status === "extra" ? EXTRA : BAD}">${i.status === "ok" ? "Right" : i.status === "extra" ? "Extra" : "Fix"}:</b> ${i.msg}</li>`);
