@@ -40,6 +40,14 @@ math[display="block"] { margin: 16px 0 18px; }
 .brand { font-family: var(--serif); font-weight: 600; font-size: 1.05rem; color: var(--ink); text-decoration: none; }
 .brand span { color: var(--ink-soft); font-weight: 400; }
 .topbar .where { font-size: 0.86rem; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar .where { flex: 1; min-width: 0; }
+/* the three parts of the lesson, so a visitor can move between them from any page */
+.topbar .parts { display: flex; gap: 4px; flex-shrink: 0; }
+.topbar .parts a { font-size: 0.86rem; color: var(--ink-soft); text-decoration: none; padding: 5px 10px; border-radius: 6px; white-space: nowrap; }
+.topbar .parts a:hover { color: var(--ink); background: #ece9df; }
+.topbar .parts a[aria-current] { color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+@media (max-width: 720px) { .topbar .where { display: none; } }
+@media (max-width: 420px) { .topbar .parts a { padding: 5px 6px; font-size: 0.8rem; } }
 
 /* cards and buttons */
 .card { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: 22px; }

@@ -9,6 +9,12 @@ export default {
       return Response.redirect(url.origin + "/during/" + url.pathname.replace(/^\/in-class\/?/, "") + url.search, 301);
     }
 
+    // the bare address opens straight on the lesson: Before class, step 1 (the check-in), without a home page first
+    if (url.pathname === "/") {
+      const page = await env.ASSETS.fetch(new Request(url.origin + "/before/", request));
+      return new Response(page.body, page);
+    }
+
     if (url.pathname === "/api/health") {
       return Response.json({ ok: true, site: "learn.phylab.uk", time: new Date().toISOString() });
     }

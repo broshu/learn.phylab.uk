@@ -4,25 +4,49 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Teacher view · Check-in · learn.phylab.uk</title>
+<title>Teacher view · learn.phylab.uk</title>
 <link rel="stylesheet" href="/assets/site.css">
 <link rel="stylesheet" href="/assets/teacher.css">
 <style>
-  .wrap { max-width: 1040px; }
+  .wrap { max-width: 1200px; }
   main.wrap { padding: 30px 20px 10px; }
   .lead { color: var(--ink-soft); max-width: 66ch; margin: 10px 0 18px; }
   .sample { border-left: 4px solid var(--warn); }
   .qcard { margin-bottom: 18px; }
+  .ttabs { display: flex; gap: 4px; margin: 6px 0 22px; border-bottom: 1px solid var(--rule); }
+  .ttabs button { appearance: none; background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 14px; font: 600 0.95rem var(--sans); color: var(--ink-soft); cursor: pointer; margin-bottom: -1px; }
+  .ttabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
+  .tpanel { display: none; } .tpanel.on { display: block; }
+  h2.tpart { font-size: 1.35rem; margin: 0 0 6px; }
+  .tgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 18px; align-items: start; margin-bottom: 18px; }
+  .tgrid > .card, .tgrid > .tstack > .card { padding: 16px 18px; }
+  .tgrid .wide { grid-column: 1 / -1; }
+  .tgrid .tstack { display: contents; } /* the hunt's cards sit in the same grid as the mother's lesson */
+  .tgrid .tstack > .card { margin: 0; }
+  .none { color: var(--ink-soft); font-size: 0.92rem; }
+  /* the student side is still built on this page (the teacher cards are worked out from it) but kept out of sight */
+  .offstage { position: absolute; left: -10000px; top: 0; width: 760px; visibility: hidden; pointer-events: none; }
+  @media (max-width: 520px) { .tgrid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 <header class="topbar"><div class="wrap">
   <a class="brand" href="/">learn<span>.phylab.uk</span></a>
-  <span class="where">Teacher view · Before class · Check-in</span>
+  <span class="where">Teacher view · the whole lesson</span>
 </div></header>
 
 <main class="wrap">
-  <h1>Check-in: how the class did</h1>
+  <h1>Teacher view</h1>
+  <p class="lead">Everything the teacher sees, gathered from the panels beside each student step. Each part shows a simulated class, plus your own answers from the student pages in this tab, marked as "you" or "the student on the left".</p>
+
+  <nav class="ttabs" role="tablist">
+    <button type="button" data-tab="before" class="on">Before class</button>
+    <button type="button" data-tab="during">In class</button>
+    <button type="button" data-tab="after">After class</button>
+  </nav>
+
+  <section class="tpanel on" id="p-before">
+  <h2 class="tpart">Check-in: how the class did</h2>
   <p class="lead">Every student gets the same five questions with different numbers. Here all the answers are redrawn in one common picture per question and laid on top of each other, so you can see what the class did without opening each answer.</p>
 
   <div class="card sample">
@@ -39,7 +63,32 @@
   </p>
   <div id="questions"></div>
 
-  <footer class="site"><p>Each answer is marked by fixed rules (direction and relative size within set limits), the same rules on the student's page and here. <a href="/before/">Open the check-in as a student</a>.</p></footer>
+    <p class="none">Learn, the second step before class, has no teacher view: it is each student's own catch-up, built from the check-in above.</p>
+  </section>
+
+  <section class="tpanel" id="p-during">
+    <h2 class="tpart">In class</h2>
+    <p class="lead">Free exploration in 3D is not marked, so it has no teacher view.</p>
+    <div class="tgrid">
+      <div class="card tcard" id="drawTeacher"></div>
+      <div class="card tcard" id="peerTeacher"></div>
+      <div class="card tcard wide" id="matchTeacher"></div>
+    </div>
+  </section>
+
+  <section class="tpanel" id="p-after">
+    <h2 class="tpart">After class</h2>
+    <div class="tgrid">
+      <div class="card tcard" id="teachTeacher"></div>
+      <div class="tstack" id="huntTeacher"></div>
+    </div>
+  </section>
+
+  <div class="offstage" aria-hidden="true">
+    <div id="drawStudent"></div><div id="peerStudent"></div><div id="teachStudent"></div><div id="huntStudent"></div>
+  </div>
+
+  <footer class="site"><p>Each answer is marked by fixed rules, the same rules on the student's page and here. <a href="/before/">Open the lesson as a student</a>.</p></footer>
 </main>
 <script type="module" src="/teacher/teacher.js"></script>
 </body>

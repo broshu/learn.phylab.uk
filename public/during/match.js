@@ -35,11 +35,14 @@ function makeClass() {
 }
 
 export function startMatch({ student, teacher, rec }) {
-  // ---------- student ----------
-  student.innerHTML = `<div id="mSpace"></div><div id="mFeedback" aria-live="polite" style="margin-top:12px"></div>`;
-  const fb = student.querySelector("#mFeedback");
-  let live = null, checks = 0;
-  startSpace3D(student.querySelector("#mSpace"), {
+  // the full teacher page (no student side) shows the last check made in this tab; the student page starts afresh,
+  // because the 3D space does not bring back the objects placed before a reload
+  const prev = student ? null : rec.get("match");
+  let live = prev && prev.result ? { id: "You", ...prev } : null, checks = 0;
+
+  // ---------- student ---------- (none on the full teacher page)
+  const fb = student ? (student.innerHTML = `<div id="mSpace"></div><div id="mFeedback" aria-live="polite" style="margin-top:12px"></div>`, student.querySelector("#mFeedback")) : null;
+  if (student) startSpace3D(student.querySelector("#mSpace"), {
     rec, mode: "match", target: TARGET, judge: judgeMatch,
     onCheck(result, placed) {
       checks++;
