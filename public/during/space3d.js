@@ -26,6 +26,8 @@ const START = [{ kind: "point", q: 1, x: -0.09, y: 0.15, z: 0 }, { kind: "point"
 
 const COLOR = { pos: 0xc0392b, neg: 0x1f5fbf, paper: 0xf7f5ef, vr: 0x1c2130 };
 const LINE = { screen: 0x39415a, xr: 0xffd15c };
+// the match: the field to match is orange; the student's own lines (shown after Check) are ink, or light blue in a headset
+const TARGET_LINE = { screen: 0xd9822b, xr: 0xff9a3c }, MINE_XR = 0x9fd3ff;
 const radius = (q) => 0.012 + 0.004 * Math.abs(q);
 
 // ---------- physics: the field and its lines (k = 1; only the shape of the field matters here) ----------
@@ -268,7 +270,14 @@ const partsOf = (kind, q) => kind === "point" ? qParts(q)
 
 // ---------- the explorer ----------
 
-export function startSpace3D(root, { rec } = {}) {
+/**
+ * mode "explore": free exploration, the field lines of whatever is on the table are always shown.
+ * mode "match": the field of `target` (hidden objects) is shown in orange; the student places objects without
+ * seeing their own lines, then Check shows their lines over the target and calls judge(placed) and onCheck(result).
+ * Returns { check, clear }.
+ */
+export function startSpace3D(root, { rec, mode: task = "explore", target = [], judge = null, onCheck = () => {} } = {}) {
+  const match = task === "match";
   root.classList.add("v3");
   root.innerHTML = `
     <div class="v3-tabs" role="tablist" aria-label="How to view the 3D space">
@@ -282,15 +291,16 @@ export function startSpace3D(root, { rec } = {}) {
       <p class="v3-flash" hidden></p>
     </div>
     <div class="v3-bar">
-      <p class="v3-hint">Slide an object from a tray onto the table: point charges on the right; a charged plate, rod and ring on the left. A new one appears on the tray. Only objects above the table make the field. Let go of an object anywhere else and it falls and is gone, unless you put it back on a tray. Drag an object to move it sideways; drag the grey handle above it to move it up or down; drag the green arrow to turn a plate, rod or ring (sideways to turn it round, up and down to tilt it). Drag empty space to turn the view; scroll or pinch to zoom.</p>
+      <p class="v3-hint">${match ? "The orange lines are the field you have to make. " : ""}Slide an object from a tray onto the table: point charges on the right; a charged plate, rod and ring on the left. A new one appears on the tray. Only objects above the table make the field. Let go of an object anywhere else and it falls and is gone, unless you put it back on a tray. Drag an object to move it sideways; drag the grey handle above it to move it up or down; drag the green arrow to turn a plate, rod or ring (sideways to turn it round, up and down to tilt it). Drag empty space to turn the view; scroll or pinch to zoom.</p>
       <div class="v3-tools">
         <label>Lines per <i>q</i> <select class="v3-density"><option value="8">8</option><option value="12" selected>12</option><option value="20">20</option></select></label>
         <button type="button" class="btn ghost v3-view">Reset view</button>
+        ${match ? `<button type="button" class="btn v3-check">Check my match</button>` : ""}
       </div>
     </div>`;
   const stage = root.querySelector(".v3-stage"), note = root.querySelector(".v3-note");
   const xrBar = root.querySelector(".v3-xr"), flashEl = root.querySelector(".v3-flash");
-  const log = (action, d = {}) => rec && rec.event("space3d", { action, ...d });
+  const log = (action, d = {}) => rec && rec.event(match ? "match3d" : "space3d", { action, ...d });
 
   // renderer, camera, scene
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -378,15 +388,31 @@ export function startSpace3D(root, { rec } = {}) {
     world.add(dish, post, foot, m, lb, pr); pickables.push(pr); trays.push(t);
   });
   const clearBtn = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.012, 0.04), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }));
-  clearBtn.position.set(RIGHT.x, 0.006, 0.3); clearBtn.userData = { kind: "clear" }; world.add(clearBtn); pickables.push(clearBtn);
-  const clearLb = label([{ t: "Clear" }], 0.014); clearLb.position.set(RIGHT.x, 0.024, 0.3); world.add(clearLb);
+  clearBtn.position.set(RIGHT.x - 0.05, 0.006, 0.28); clearBtn.userData = { kind: "clear" }; world.add(clearBtn); pickables.push(clearBtn);
+  const clearLb = label([{ t: "Clear" }], 0.014); clearLb.position.set(RIGHT.x - 0.05, 0.024, 0.28); world.add(clearLb);
 
-  // field lines and their arrows
-  const lineMat = new THREE.LineBasicMaterial({ color: LINE.screen });
-  const lineObj = new THREE.LineSegments(new THREE.BufferGeometry(), lineMat); world.add(lineObj);
-  const arrowMat = new THREE.MeshBasicMaterial({ color: LINE.screen });
-  const arrows = new THREE.InstancedMesh(new THREE.ConeGeometry(0.0045, 0.014, 10), arrowMat, 800);
-  arrows.count = 0; world.add(arrows);
+  // field lines and their arrows: one set for the objects on the table and, in the match, one for the target field
+  function lineSet(color) {
+    const mat = new THREE.LineBasicMaterial({ color }), obj = new THREE.LineSegments(new THREE.BufferGeometry(), mat);
+    const amat = new THREE.MeshBasicMaterial({ color }), arrows = new THREE.InstancedMesh(new THREE.ConeGeometry(0.0045, 0.014, 10), amat, 800);
+    arrows.count = 0; world.add(obj, arrows);
+    return { obj, arrows, color: (hex) => { mat.color.setHex(hex); amat.color.setHex(hex); }, show: (on) => { obj.visible = arrows.visible = on; } };
+  }
+  const mine = lineSet(LINE.screen);
+  const goal = match ? lineSet(TARGET_LINE.screen) : null;
+
+  // in the match: a Check button on the floor next to Clear (so it also works in a headset), and the result above the table
+  let resultLb = null;
+  if (match) {
+    const chk = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.012, 0.04), new THREE.MeshStandardMaterial({ color: 0x0d6b5f, roughness: 0.6 }));
+    chk.position.set(RIGHT.x + 0.04, 0.006, 0.28); chk.userData = { kind: "check" }; world.add(chk); pickables.push(chk);
+    const chkLb = label([{ t: "Check" }], 0.014); chkLb.position.set(RIGHT.x + 0.04, 0.024, 0.28); world.add(chkLb);
+  }
+  function showResult(text) {
+    if (resultLb) { world.remove(resultLb); resultLb.material.map.dispose(); resultLb = null; }
+    if (!text) return;
+    resultLb = label([{ t: text }], 0.024); resultLb.position.set(0, 0.46, 0); world.add(resultLb);
+  }
 
   // objects in the space
   const charges = [];
@@ -448,6 +474,7 @@ export function startSpace3D(root, { rec } = {}) {
     shadowM.makeTranslation(c.x, 0.0012, c.z).multiply(flat).multiply(turnM.makeRotationFromQuaternion(c.quat));
     c.shadow.matrix.copy(shadowM); c.shadow.matrixWorldNeedsUpdate = true;
     if (!c.out) dirty = true;
+    if (!c.falling) changed();
   }
   /** Only a charge above the table makes the field; anywhere else it is shown faded and left out. */
   function setOut(c) {
@@ -459,24 +486,40 @@ export function startSpace3D(root, { rec } = {}) {
     world.remove(c.g, c.drop, c.shadow);
     c.proxies.forEach((p) => pickables.splice(pickables.indexOf(p), 1));
     charges.splice(charges.indexOf(c), 1);
-    dirty = true;
+    dirty = true; changed();
   }
   function clearAll() { [...charges].forEach(removeCharge); log("clear"); }
-  START.forEach((s) => addObject(s.kind, s.q, s.x, s.y, s.z));
+
+  // in the match, the student's own lines are shown only after Check; any change hides them again until the next Check
+  let shown = !match;
+  function changed() { if (match && shown) { shown = false; mine.show(false); showResult(""); } }
+  const toSpec = (c) => ({ kind: c.kind, q: c.q, x: c.x, y: c.y, z: c.z, m: new THREE.Matrix3().setFromMatrix4(turnM.makeRotationFromQuaternion(c.quat)).elements.slice() });
+  /** The objects above the table, for judging: position, charge and the direction that says how each is turned. */
+  const placedNow = () => charges.filter((c) => !c.out && !c.falling).map((c) => ({
+    kind: c.kind, q: c.q, x: +c.x.toFixed(3), y: +c.y.toFixed(3), z: +c.z.toFixed(3),
+    axis: c.kind === "point" ? null : new THREE.Vector3(c.kind === "rod" ? 1 : 0, c.kind === "rod" ? 0 : 1, 0).applyQuaternion(c.quat).toArray().map((v) => +v.toFixed(4)),
+    // a plate's corners seen from above, for the teacher's picture
+    corners: c.kind !== "plate" ? undefined : [[1, 1], [1, -1], [-1, -1], [-1, 1]].map(([u, w]) =>
+      new THREE.Vector3(u * SIZE.plate, 0, w * SIZE.plate).applyQuaternion(c.quat).add(new THREE.Vector3(c.x, c.y, c.z))).map((v) => [+v.x.toFixed(4), +v.z.toFixed(4)]) }));
+  function check() {
+    const placed = placedNow(), result = judge ? judge(placed) : null;
+    shown = true; mine.show(true); dirty = true;
+    if (result) showResult(result.ok ? "Matched!" : `Not yet: ${result.items.filter((i) => i.status !== "ok").length} to fix`);
+    log("check", { ok: result && result.ok, placed });
+    onCheck(result, placed);
+    return result;
+  }
+  let goalDirty = match;
+  if (!match) START.forEach((s) => addObject(s.kind, s.q, s.x, s.y, s.z));
   // for checking the field lines: /during/?debug3d exposes a way to place objects from the console
   if (new URLSearchParams(location.search).has("debug3d"))
-    window.space3d = { add: (kind, q, x, y, z, tilt, yaw) => { const c = addObject(kind, q, x, y, z); if (tilt !== undefined) { c.tilt = tilt * DEG; c.yaw = (yaw || 0) * DEG; c.quat = orient(c.yaw, c.tilt); turned(c); } return c; }, clear: () => [...charges].forEach(removeCharge), camera, controls };
+    window[match ? "match3d" : "space3d"] = { add: (kind, q, x, y, z, tilt, yaw) => { const c = addObject(kind, q, x, y, z); if (tilt !== undefined) { c.tilt = tilt * DEG; c.yaw = (yaw || 0) * DEG; c.quat = orient(c.yaw, c.tilt); turned(c); } return c; }, clear: () => [...charges].forEach(removeCharge), check, camera, controls };
 
   const up = new THREE.Vector3(0, 1, 0), tmpQ = new THREE.Quaternion(), tmpM = new THREE.Matrix4();
   const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1);
 
-  function rebuild() {
-    dirty = false;
-    const ch = charges.filter((c) => !c.out && !c.falling).map((c) => prep({ kind: c.kind, q: c.q, x: c.x, y: c.y, z: c.z, m: new THREE.Matrix3().setFromMatrix4(turnM.makeRotationFromQuaternion(c.quat)).elements.slice() }));
-    // while something is being dragged, half the lines keep the view smooth (a headset is slower than a computer);
-    // the full set is drawn as soon as it is let go
-    const moving = sDrag || ctrls.some((c) => c.userData.drag);
-    const lines = ch.length ? fieldLines(ch, moving ? Math.max(4, perQ / 2) : perQ) : [];
+  /** Put a set of field lines into a line set, with one arrow per line. */
+  function draw(set, lines) {
     const seg = [];
     let n = 0;
     for (const L of lines) {
@@ -486,7 +529,7 @@ export function startSpace3D(root, { rec } = {}) {
         len.push(len[len.length - 1] + Math.hypot(p[k] - p[k - 3], p[k + 1] - p[k - 2], p[k + 2] - p[k - 1]));
       }
       const total = len[len.length - 1];
-      if (total < 0.025 || n >= arrows.instanceMatrix.count) continue;
+      if (total < 0.025 || n >= set.arrows.instanceMatrix.count) continue;
       // one arrow per line: in the middle of a line between two charges, otherwise near its charge
       const s = L.start && L.end ? total / 2 : L.start ? Math.min(total / 2, 0.08) : total - Math.min(total / 2, 0.08);
       let k = 1; while (k < len.length - 1 && len[k] < s) k++;
@@ -494,12 +537,26 @@ export function startSpace3D(root, { rec } = {}) {
       tmpT.set(p[i] - p[i - 3], p[i + 1] - p[i - 2], p[i + 2] - p[i - 1]).normalize();
       tmpP.set(p[i], p[i + 1], p[i + 2]);
       tmpQ.setFromUnitVectors(up, tmpT);
-      arrows.setMatrixAt(n++, tmpM.compose(tmpP, tmpQ, one));
+      set.arrows.setMatrixAt(n++, tmpM.compose(tmpP, tmpQ, one));
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.Float32BufferAttribute(seg, 3));
-    lineObj.geometry.dispose(); lineObj.geometry = geo;
-    arrows.count = n; arrows.instanceMatrix.needsUpdate = true;
+    set.obj.geometry.dispose(); set.obj.geometry = geo;
+    set.arrows.count = n; set.arrows.instanceMatrix.needsUpdate = true;
+  }
+  function rebuild() {
+    dirty = false;
+    if (goalDirty) {
+      goalDirty = false;
+      draw(goal, fieldLines(target.map((t) => prep({ kind: t.kind, q: t.q, x: t.x, y: t.y, z: t.z,
+        m: new THREE.Matrix3().setFromMatrix4(turnM.makeRotationFromQuaternion(orient((t.turn || 0) * DEG, (t.tilt || 0) * DEG))).elements.slice() })), perQ));
+    }
+    if (!shown) { mine.show(false); return; } // the match before Check: the student's own field stays hidden
+    const ch = charges.filter((c) => !c.out && !c.falling).map((c) => prep(toSpec(c)));
+    // while something is being dragged, half the lines keep the view smooth (a headset is slower than a computer);
+    // the full set is drawn as soon as it is let go
+    const moving = sDrag || ctrls.some((c) => c.userData.drag);
+    draw(mine, ch.length ? fieldLines(ch, moving ? Math.max(4, perQ / 2) : perQ) : []);
   }
 
   // ---------- dragging: one set of rules for mouse, finger, controller and hand ----------
@@ -514,6 +571,7 @@ export function startSpace3D(root, { rec } = {}) {
   function grab(hit, mode) {
     const u = hit.object.userData;
     if (u.kind === "clear") { clearAll(); return null; }
+    if (u.kind === "check") { check(); return null; }
     if (u.kind === "token") {
       if (charges.filter((c) => !c.falling).length >= MAX_OBJECTS) { flash(`At most ${MAX_OBJECTS} objects at a time.`); return null; }
       const t = u.t;
@@ -682,7 +740,7 @@ export function startSpace3D(root, { rec } = {}) {
     world.position.set(0.02, -0.42, -0.65);               // the space sits a little below the eyes, at arm's length
     scene.background = xrMode === "vr" ? new THREE.Color(COLOR.vr) : null;
     floorMat.opacity = xrMode === "vr" ? 0.12 : 0.35;
-    lineMat.color.setHex(LINE.xr); arrowMat.color.setHex(LINE.xr);
+    mine.color(match ? MINE_XR : LINE.xr); if (goal) goal.color(TARGET_LINE.xr);
     xrBar.hidden = xrMode !== "ar";
     controls.enabled = false;
   });
@@ -691,7 +749,7 @@ export function startSpace3D(root, { rec } = {}) {
     world.position.set(0, 0, 0);
     scene.background = new THREE.Color(COLOR.paper);
     floorMat.opacity = 1;
-    lineMat.color.setHex(LINE.screen); arrowMat.color.setHex(LINE.screen);
+    mine.color(LINE.screen); if (goal) goal.color(TARGET_LINE.screen);
     xrBar.hidden = true; controls.enabled = true; xrMode = null;
     log("exit");
   });
@@ -704,21 +762,25 @@ export function startSpace3D(root, { rec } = {}) {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     // on a narrow (phone) screen widen the view, so the whole tray still fits from side to side
-    const half = Math.atan(Math.tan((21 * Math.PI) / 180) * Math.max(1, 1.3 / camera.aspect));
+    const half = Math.atan(Math.tan((21 * Math.PI) / 180) * Math.max(1, 1.6 / camera.aspect));
     camera.fov = (2 * half * 180) / Math.PI;
     camera.updateProjectionMatrix();
   }
   new ResizeObserver(resize).observe(stage);
   resize();
 
-  root.querySelector(".v3-density").addEventListener("change", (e) => { perQ = +e.target.value; dirty = true; log("density", { perQ }); });
+  root.querySelector(".v3-density").addEventListener("change", (e) => { perQ = +e.target.value; dirty = true; goalDirty = match; log("density", { perQ }); });
+  if (match) root.querySelector(".v3-check").addEventListener("click", check);
+  // draw only while the space is on screen: two 3D spaces on one page, and a headset battery, need not both run
+  let onScreen = true;
+  new IntersectionObserver((es) => { onScreen = es[0].isIntersecting; }).observe(stage);
   root.querySelector(".v3-view").addEventListener("click", resetView);
 
   const clock = new THREE.Clock();
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.05);
     const xr = renderer.xr.isPresenting;
-    if (!xr && !stage.offsetParent) return;           // step not on screen: nothing to draw
+    if (!xr && (!stage.offsetParent || !onScreen)) return; // not on screen: nothing to draw
     for (const c of [...charges]) if (c.falling) {
       c.vy -= 4 * dt; c.y += c.vy * dt; place(c);
       if (c.y < -0.6) removeCharge(c);
@@ -733,4 +795,5 @@ export function startSpace3D(root, { rec } = {}) {
     if (!xr) controls.update();
     renderer.render(scene, camera);
   });
+  return { check, clear: clearAll };
 }

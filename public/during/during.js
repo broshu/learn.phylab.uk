@@ -24,7 +24,8 @@ function show(step, log = true) {
 let space3d = null;
 function open3D() {
   if (space3d) return;
-  space3d = import("/during/space3d.js").then((m) => m.startSpace3D($("space3d"), { rec }))
+  space3d = Promise.all([import("/during/space3d.js"), import("/during/match.js")])
+    .then(([m, mm]) => { m.startSpace3D($("space3d"), { rec }); mm.startMatch({ student: $("matchStudent"), teacher: $("matchTeacher"), rec }); })
     .catch((err) => { space3d = null; $("space3d").innerHTML = `<p class="card">The 3D space could not load (${err.message}). Reload the page to try again.</p>`; });
 }
 document.addEventListener("visibilitychange", () => rec.event("step", { name: document.hidden ? "_away" : state.step }));
