@@ -17,8 +17,7 @@ One Cloudflare Worker (`learn-phylab-uk`), deployed automatically by Workers Bui
 |---|---|
 | `/` | Home: the cycle, student entry, teacher entry |
 | `/before/` | Before class |
-| `/during/` | In class (draw field lines with automatic check, peer feedback, 3D match). `/in-class/` redirects here |
-| `/during/vr/` | WebXR page — opens on screen or in a headset browser |
+| `/during/` | In class (draw field lines with automatic check, peer feedback, 3D match). The 3D step opens in the browser; Browser / AR / VR tabs switch to WebXR on devices that support it (three.js in `public/vendor/three/`, loaded only for that step). `/in-class/` redirects here |
 | `/after/` | After class (platypus game) |
 | `/teacher/` | Teacher view (protected by Cloudflare Access) |
 | `/about/` | About this demo |

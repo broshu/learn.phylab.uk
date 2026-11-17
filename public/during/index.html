@@ -90,13 +90,32 @@
   .tcomm ul { list-style: none; padding: 0; margin: 4px 0 4px; } .tcomm li { margin-bottom: 3px; } .tcomm li b { margin-right: 6px; }
   .placeholder { border: 2px dashed var(--rule); background: transparent; }
 
+  /* 3D space (step 3) */
+  h2.part { font-size: 1.25rem; margin: 22px 0 8px; }
+  .v3-tabs { display: inline-flex; gap: 2px; padding: 3px; background: #e9e5da; border-radius: 9px; margin: 4px 0 10px; }
+  .v3-tabs button { appearance: none; border: 0; background: transparent; padding: 5px 16px; border-radius: 7px; font: 600 0.88rem var(--sans); color: var(--ink-soft); cursor: pointer; }
+  .v3-tabs button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(26,32,48,0.15); }
+  .v3-tabs button.na:not(.on) { opacity: 0.65; }
+  .v3-note { background: var(--warn-soft); border: 1px solid #ecd9ad; border-radius: 9px; padding: 10px 14px; margin: 0 0 10px; font-size: 0.93rem; }
+  .v3-note p { margin: 0; } .v3-note .btn { margin-top: 10px; }
+  .v3-stage { position: relative; height: min(64vh, 560px); min-height: 340px; border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; background: #f7f5ef; }
+  .v3-stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .v3-flash { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; background: rgba(26,32,48,0.86); color: #fff; padding: 6px 12px; border-radius: 7px; font-size: 0.88rem; }
+  .v3-xr { position: absolute; inset: 0; pointer-events: none; display: flex; justify-content: flex-end; align-items: flex-start; padding: 16px; }
+  .v3-xr .btn { pointer-events: auto; }
+  .v3-bar { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .v3-hint { margin: 0; flex: 1 1 380px; color: var(--ink-soft); font-size: 0.88rem; }
+  .v3-tools { display: flex; gap: 12px; align-items: center; font-size: 0.88rem; }
+  .v3-tools select { font: inherit; padding: 2px 4px; }
+  .v3-tools .btn { padding: 4px 12px; font-size: 0.86rem; }
+
   @media (max-width: 1000px) {
     .row { grid-template-columns: 1fr; }
     .row > .scol { padding-right: 0; }
     .row > .tcol { margin: 12px 0 0; border-left: 0; border-top: 2px dashed #9aa3b5; padding: 14px 12px; }
     .steps .row .tcol { display: none; }
   }
-  @media (max-width: 640px) { .steps li span { display: none; } }
+  @media (max-width: 640px) { .steps li span { display: none; } .v3-stage { height: 92vw; min-height: 0; } }
 </style>
 </head>
 <body>
@@ -146,16 +165,20 @@
   </div>
 </section>
 
-<!-- 3 · 3D MATCH (AR on the tablet) -->
+<!-- 3 · 3D MATCH (browser by default; AR and VR on devices that support them) -->
 <section class="step" id="s-ar">
   <div class="row">
     <div class="scol">
       <h1>3D match</h1>
-      <p class="intro">You are shown a field in three dimensions. Choose objects and place them so that they make the same field.</p>
-      <div class="card placeholder"><p style="margin:0"><strong>This step is being built.</strong></p></div>
+      <p class="intro">Field lines do not lie in a flat page: they fill the space around the charges. First explore the field in three dimensions, then match a field you are shown.</p>
+      <h2 class="part">Explore the space</h2>
+      <p>Place charges anywhere in the space and turn it to look from every side. Try one charge on its own; a positive and a negative charge; two positive charges; and +2<i>q</i> with &minus;<i>q</i>.</p>
+      <div id="space3d"></div>
+      <h2 class="part">Match the field</h2>
+      <div class="card placeholder"><p style="margin:0"><strong>This part is being built.</strong></p></div>
       <div class="nav"><button class="btn ghost" data-next="peer">Back</button><a class="btn" href="/">Back to the lesson</a></div>
     </div>
-    <aside class="tcol tend"><div class="card off">Here: how far each student got with the match.</div><button type="button" class="btn reset-demo" title="Clear the answers saved in this browser and start again">Reset demo</button></aside>
+    <aside class="tcol tend"><div class="card off">Free exploration is not marked, so the teacher sees nothing here. The teacher view comes with the match task: how far each student got.</div><button type="button" class="btn reset-demo" title="Clear the answers saved in this browser and start again">Reset demo</button></aside>
   </div>
 </section>
 
