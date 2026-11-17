@@ -8,7 +8,7 @@
 // a controller or a hand. Sizes are in metres, so the scene is desk-sized in AR and at arm's length in VR.
 // three.js is served from this site (public/vendor/three/), so it comes from the same nearby Cloudflare edge as the page.
 import * as THREE from "/vendor/three/three.min.js";
-const { OrbitControls } = THREE;
+const { OrbitControls, USDZExporter, mergeGeometries } = THREE;
 
 const TABLE = 0.3;            // half-width of the table: only objects above the table make the field
 const Y0 = 0.03, Y1 = 0.4;    // lowest and highest an object can be held
@@ -513,31 +513,35 @@ export function startSpace3D(root, { rec, mode: task = "explore", target = [], j
   if (!match) START.forEach((s) => addObject(s.kind, s.q, s.x, s.y, s.z));
   // for checking the field lines: /during/?debug3d exposes a way to place objects from the console
   if (new URLSearchParams(location.search).has("debug3d"))
-    window[match ? "match3d" : "space3d"] = { add: (kind, q, x, y, z, tilt, yaw) => { const c = addObject(kind, q, x, y, z); if (tilt !== undefined) { c.tilt = tilt * DEG; c.yaw = (yaw || 0) * DEG; c.quat = orient(c.yaw, c.tilt); turned(c); } return c; }, clear: () => [...charges].forEach(removeCharge), check, camera, controls };
+    window[match ? "match3d" : "space3d"] = { add: (kind, q, x, y, z, tilt, yaw) => { const c = addObject(kind, q, x, y, z); if (tilt !== undefined) { c.tilt = tilt * DEG; c.yaw = (yaw || 0) * DEG; c.quat = orient(c.yaw, c.tilt); turned(c); } return c; }, clear: () => [...charges].forEach(removeCharge), check, camera, controls,
+      usdz: async () => { const g = new THREE.Group(); for (const c of charges) { const m = new THREE.Mesh(c.geom, new THREE.MeshStandardMaterial()); m.position.set(c.x, c.y, c.z); g.add(m); } if (mine.lines) g.add(tubes(mine.lines, LINE.screen)); return (await new USDZExporter().parseAsync(g, { quickLookCompatible: true })).byteLength; } };
 
   const up = new THREE.Vector3(0, 1, 0), tmpQ = new THREE.Quaternion(), tmpM = new THREE.Matrix4();
   const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1);
 
+  /** Where the arrow of a line goes, as a matrix for a cone (or null for a very short line):
+   *  in the middle of a line between two charges, otherwise near its charge. */
+  function arrowAt(L, out = new THREE.Matrix4()) {
+    const p = L.pts, len = [0];
+    for (let k = 3; k < p.length; k += 3) len.push(len[len.length - 1] + Math.hypot(p[k] - p[k - 3], p[k + 1] - p[k - 2], p[k + 2] - p[k - 1]));
+    const total = len[len.length - 1];
+    if (total < 0.025) return null;
+    const s = L.start && L.end ? total / 2 : L.start ? Math.min(total / 2, 0.08) : total - Math.min(total / 2, 0.08);
+    let k = 1; while (k < len.length - 1 && len[k] < s) k++;
+    const i = 3 * k;
+    tmpT.set(p[i] - p[i - 3], p[i + 1] - p[i - 2], p[i + 2] - p[i - 1]).normalize();
+    tmpP.set(p[i], p[i + 1], p[i + 2]);
+    return out.compose(tmpP, tmpQ.setFromUnitVectors(up, tmpT), one);
+  }
   /** Put a set of field lines into a line set, with one arrow per line. */
   function draw(set, lines) {
+    set.lines = lines;
     const seg = [];
     let n = 0;
     for (const L of lines) {
-      const p = L.pts, len = [0];
-      for (let k = 3; k < p.length; k += 3) {
-        seg.push(p[k - 3], p[k - 2], p[k - 1], p[k], p[k + 1], p[k + 2]);
-        len.push(len[len.length - 1] + Math.hypot(p[k] - p[k - 3], p[k + 1] - p[k - 2], p[k + 2] - p[k - 1]));
-      }
-      const total = len[len.length - 1];
-      if (total < 0.025 || n >= set.arrows.instanceMatrix.count) continue;
-      // one arrow per line: in the middle of a line between two charges, otherwise near its charge
-      const s = L.start && L.end ? total / 2 : L.start ? Math.min(total / 2, 0.08) : total - Math.min(total / 2, 0.08);
-      let k = 1; while (k < len.length - 1 && len[k] < s) k++;
-      const i = 3 * k;
-      tmpT.set(p[i] - p[i - 3], p[i + 1] - p[i - 2], p[i + 2] - p[i - 1]).normalize();
-      tmpP.set(p[i], p[i + 1], p[i + 2]);
-      tmpQ.setFromUnitVectors(up, tmpT);
-      set.arrows.setMatrixAt(n++, tmpM.compose(tmpP, tmpQ, one));
+      const p = L.pts;
+      for (let k = 3; k < p.length; k += 3) seg.push(p[k - 3], p[k - 2], p[k - 1], p[k], p[k + 1], p[k + 2]);
+      if (n < set.arrows.instanceMatrix.count && arrowAt(L, tmpM)) set.arrows.setMatrixAt(n++, tmpM);
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.Float32BufferAttribute(seg, 3));
@@ -690,7 +694,7 @@ export function startSpace3D(root, { rec, mode: task = "explore", target = [], j
     navigator.xr.isSessionSupported("immersive-" + m).then((ok) => { support[m] = ok; }).catch(() => {}))) : Promise.resolve());
   const tabs = [...root.querySelectorAll(".v3-tabs button")];
   let mode = "browser";
-  checked.then(() => tabs.forEach((b) => { if (b.dataset.mode !== "browser" && !support[b.dataset.mode]) b.classList.add("na"); }));
+  checked.then(() => tabs.forEach((b) => { const m = b.dataset.mode; if (m !== "browser" && !support[m] && !(m === "ar" && quickLook)) b.classList.add("na"); }));
 
   const NOTE = {
     ar: {
@@ -702,6 +706,7 @@ export function startSpace3D(root, { rec, mode: task = "explore", target = [], j
       no: "<b>VR</b> needs the browser of a VR headset (for example Meta Quest or Apple Vision Pro). This browser cannot open it, so the view below stays in the browser.",
     },
   };
+  const APPLE_AR = "<b>AR on iPad and iPhone.</b> Safari on iPad and iPhone does not support AR inside web pages: this is a limit of Apple\u2019s Safari, not of this site. Instead, the button opens Apple\u2019s own AR viewer with what is on the table now. You can place it on a real desk and walk round it, but nothing can be moved there: to change it, come back here, change it, and open it again.";
   function setTab(m) {
     mode = m;
     tabs.forEach((b) => { const on = b.dataset.mode === m; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
@@ -709,6 +714,14 @@ export function startSpace3D(root, { rec, mode: task = "explore", target = [], j
     checked.then(() => {
       if (mode !== m) return;
       const ok = support[m];
+      if (m === "ar" && !ok && quickLook) {
+        // the anchor must hold an image for Safari to hand the file to the AR viewer
+        note.innerHTML = `<p>${APPLE_AR}</p><a rel="ar" class="btn v3-enter busy" href="#"><img alt="" width="1" height="1" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">Preparing the AR view\u2026</a>`;
+        note.hidden = false;
+        note.querySelector("a[rel=ar]").addEventListener("click", (e) => { if (!qlURL) e.preventDefault(); else log("apple ar viewer"); });
+        prepareQuickLook();
+        return;
+      }
       note.innerHTML = `<p>${ok ? NOTE[m].yes : NOTE[m].no}</p>` + (ok ? `<button type="button" class="btn v3-enter">Start ${m.toUpperCase()}</button>` : "");
       note.hidden = false;
       const b = note.querySelector(".v3-enter");
@@ -717,6 +730,59 @@ export function startSpace3D(root, { rec, mode: task = "explore", target = [], j
     log("tab", { mode: m });
   }
   tabs.forEach((b) => b.addEventListener("click", () => setTab(b.dataset.mode)));
+
+  // ---------- iPad and iPhone: Apple's AR viewer instead of AR in the page ----------
+  // Safari on iPad and iPhone does not support WebXR, so AR cannot run inside the page there (an Apple limit, not this
+  // site's). Instead the scene on the table is exported as a USDZ file made in the browser's memory and opened in
+  // Apple's AR viewer (AR Quick Look): it can be looked at from every side, but not changed there. Only one such file
+  // is kept, in memory: the previous one is released whenever a new one is made, and all of it when the page closes.
+  const appleTouch = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const quickLook = (appleTouch && !!document.createElement("a").relList?.supports?.("ar"))
+    || new URLSearchParams(location.search).has("appletest"); // ?appletest shows the iPad version on a computer, for checking
+  let qlURL = null, qlTimer = 0, qlBusy = false;
+  const releaseQL = () => { if (qlURL) { URL.revokeObjectURL(qlURL); qlURL = null; } };
+  window.addEventListener("pagehide", releaseQL);
+  /** Field lines as thin tubes (Apple's viewer cannot show plain lines), with their arrows, as one mesh. */
+  function tubes(lines, color) {
+    const geos = [];
+    for (const L of lines) {
+      const p = L.pts, pts = [];
+      for (let k = 0; k < p.length; k += 6) pts.push(new THREE.Vector3(p[k], p[k + 1], p[k + 2]));
+      const e = p.length - 3; pts.push(new THREE.Vector3(p[e], p[e + 1], p[e + 2]));
+      if (pts.length < 2) continue;
+      geos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), Math.min(160, pts.length * 2), 0.0012, 5, false));
+      const m = arrowAt(L);
+      if (m) geos.push(new THREE.ConeGeometry(0.0045, 0.014, 10).applyMatrix4(m));
+    }
+    return geos.length ? new THREE.Mesh(mergeGeometries(geos), new THREE.MeshStandardMaterial({ color, roughness: 0.6 })) : null;
+  }
+  function prepareQuickLook() {
+    clearTimeout(qlTimer);
+    const a = note.querySelector("a[rel=ar]");
+    if (a) { a.classList.add("busy"); a.lastChild.textContent = "Preparing the AR view\u2026"; }
+    qlTimer = setTimeout(async () => {
+      if (qlBusy) { prepareQuickLook(); return; }
+      qlBusy = true;
+      try {
+        const g = new THREE.Group();
+        const floorM = new THREE.Mesh(new THREE.BoxGeometry(2 * TABLE, 0.002, 2 * TABLE), new THREE.MeshStandardMaterial({ color: 0xece7da, roughness: 0.9 }));
+        floorM.position.y = -0.001; g.add(floorM);
+        for (const c of charges) if (!c.out && !c.falling) {
+          const m = new THREE.Mesh(c.geom, new THREE.MeshStandardMaterial({ color: c.q > 0 ? COLOR.pos : COLOR.neg, roughness: 0.45 }));
+          m.position.set(c.x, c.y, c.z); m.quaternion.copy(c.quat); g.add(m);
+        }
+        if (goal && goal.lines) { const t = tubes(goal.lines, TARGET_LINE.screen); if (t) g.add(t); }
+        if (shown && mine.lines) { const t = tubes(mine.lines, LINE.screen); if (t) g.add(t); }
+        const buf = await new USDZExporter().parseAsync(g, { quickLookCompatible: true });
+        releaseQL();
+        qlURL = URL.createObjectURL(new Blob([buf], { type: "model/vnd.usdz+zip" }));
+        const a2 = note.querySelector("a[rel=ar]");
+        if (a2) { a2.href = qlURL; a2.classList.remove("busy"); a2.lastChild.textContent = "View in AR (Apple\u2019s viewer)"; }
+      } catch (err) {
+        flash(`Could not make the AR view: ${err.message || err}`);
+      } finally { qlBusy = false; }
+    }, 500);
+  }
 
   let xrMode = null;
   async function enter(m) {
@@ -791,7 +857,7 @@ export function startSpace3D(root, { rec, mode: task = "explore", target = [], j
       if (d.rot) { d.c.quat = c.getWorldQuaternion(new THREE.Quaternion()).multiply(d.qc0).multiply(d.q0); turned(d.c); }
       ctrlRay(c); follow(d, ...toLocal(ray.ray.origin, ray.ray.direction));
     });
-    if (dirty) rebuild();
+    if (dirty) { rebuild(); if (mode === "ar" && quickLook) prepareQuickLook(); }
     if (!xr) controls.update();
     renderer.render(scene, camera);
   });
