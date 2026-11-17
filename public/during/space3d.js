@@ -7,14 +7,16 @@
 import * as THREE from "/vendor/three/three.min.js";
 const { OrbitControls } = THREE;
 
-const REGION = { x: 0.26, y0: 0.03, y1: 0.38, z: 0.26 };       // where charges may be placed
-const TRAY = { x0: -0.25, x1: 0.25, z0: 0.31, z1: 0.41, top: 0.008 };
+const TABLE = 0.3;            // half-width of the table: only charges above the table make the field
+const Y0 = 0.03, Y1 = 0.4;    // lowest and highest a charge can be held
+const REACH = 0.75;           // how far from the centre a charge can be carried
+// trays at the right of the table, at the height the charges are used, so a charge slides straight across
+const SHELF = { x: 0.42, top: 0.13, r: 0.034, zs: [-0.18, -0.06, 0.06, 0.18], qs: [2, 1, -1, -2] };
 const CENTER = new THREE.Vector3(0, 0.15, 0);
 const BOUND2 = 0.85 * 0.85;   // field lines stop this far from the centre
 const SEED = 0.02;            // lines start this far from a positive charge
 const CAPTURE = 0.016;        // a line ends this close to a negative charge
 const MAX_CHARGES = 6;
-const NEW_HEIGHT = 0.15;      // a charge taken from the tray rises to this height
 const START = [{ q: 1, x: -0.09, y: 0.15, z: 0 }, { q: -1, x: 0.09, y: 0.15, z: 0 }];
 
 const COLOR = { pos: 0xc0392b, neg: 0x1f5fbf, paper: 0xf7f5ef, vr: 0x1c2130 };
@@ -145,7 +147,7 @@ export function startSpace3D(root, { rec } = {}) {
       <p class="v3-flash" hidden></p>
     </div>
     <div class="v3-bar">
-      <p class="v3-hint">Drag a charge from the tray into the space. Drag a charge to move it sideways; drag the grey handle above it to move it up or down. Drag it back onto the tray to remove it. Drag empty space to turn the view; scroll or pinch to zoom.</p>
+      <p class="v3-hint">Slide a charge from a tray on the right onto the table; a new one appears on the tray. Only charges above the table make the field. Let go of a charge anywhere else and it falls and is gone, unless you put it back on a tray. Drag a charge to move it sideways; drag the grey handle above it to move it up or down. Drag empty space to turn the view; scroll or pinch to zoom.</p>
       <div class="v3-tools">
         <label>Lines per <i>q</i> <select class="v3-density"><option value="8">8</option><option value="12" selected>12</option><option value="20">20</option></select></label>
         <button type="button" class="btn ghost v3-view">Reset view</button>
@@ -171,7 +173,7 @@ export function startSpace3D(root, { rec } = {}) {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true; controls.minDistance = 0.3; controls.maxDistance = 2.2;
   controls.maxPolarAngle = Math.PI * 0.47; // never below the floor
-  const resetView = () => { camera.position.set(0, 0.5, 1.02); controls.target.set(0, 0.12, 0.07); controls.update(); };
+  const resetView = () => { camera.position.set(0.07, 0.47, 0.98); controls.target.set(0.07, 0.12, 0.02); controls.update(); };
   resetView();
 
   // floor of the space: a light square with a grid, so heights and shadows can be read
@@ -180,26 +182,31 @@ export function startSpace3D(root, { rec } = {}) {
   floor.rotation.x = -Math.PI / 2; world.add(floor);
   const grid = new THREE.GridHelper(0.6, 12, 0xbdb6a4, 0xd6d0c0); grid.position.y = 0.0005; world.add(grid);
 
-  // the tray: charges to take, and a Clear button
+  // the trays: taking a charge off a tray hatches a new one in its place
   const pickables = [];
   const proxyMat = new THREE.MeshBasicMaterial({ visible: false });
-  const tray = new THREE.Mesh(new THREE.BoxGeometry(TRAY.x1 - TRAY.x0, 0.012, TRAY.z1 - TRAY.z0),
-    new THREE.MeshStandardMaterial({ color: 0xe2dccb, roughness: 0.8 }));
-  tray.position.set(0, TRAY.top - 0.006, (TRAY.z0 + TRAY.z1) / 2); world.add(tray);
-  const trayZ = (TRAY.z0 + TRAY.z1) / 2 - 0.008;
-  [2, 1, -1, -2].forEach((q, k) => {
-    const x = -0.19 + k * 0.09, r = radius(q);
+  const trayMat = new THREE.MeshStandardMaterial({ color: 0xe2dccb, roughness: 0.8 });
+  const postMat = new THREE.MeshStandardMaterial({ color: 0xb3ad9d, roughness: 0.6 });
+  const trays = SHELF.qs.map((q, k) => {
+    const x = SHELF.x, z = SHELF.zs[k], r = radius(q);
+    const dish = new THREE.Mesh(new THREE.CylinderGeometry(SHELF.r, SHELF.r * 0.85, 0.006, 32), trayMat);
+    dish.position.set(x, SHELF.top - 0.003, z);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, SHELF.top - 0.006, 8), postMat);
+    post.position.set(x, (SHELF.top - 0.006) / 2, z);
+    const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.003, 20), postMat);
+    foot.position.set(x, 0.0015, z);
     const m = new THREE.Mesh(new THREE.SphereGeometry(r, 28, 18), new THREE.MeshStandardMaterial({ color: q > 0 ? COLOR.pos : COLOR.neg, roughness: 0.45 }));
-    m.position.set(x, TRAY.top + r, trayZ); world.add(m);
-    const lb = label(qParts(q), 0.018); lb.position.set(x + r + 0.019, TRAY.top + r, trayZ); world.add(lb);
-    const p = new THREE.Mesh(new THREE.SphereGeometry(r + 0.012, 8, 6), proxyMat);
-    p.position.copy(m.position); p.userData = { kind: "token", q }; world.add(p); pickables.push(p);
+    m.position.set(x, SHELF.top + r, z);
+    const lb = label(qParts(q), 0.018); lb.position.set(x + SHELF.r + 0.022, SHELF.top + r, z);
+    const t = { q, x, z, mesh: m, grow: 1 };
+    const pr = new THREE.Mesh(new THREE.SphereGeometry(r + 0.012, 8, 6), proxyMat);
+    pr.position.copy(m.position); pr.userData = { kind: "token", t };
+    world.add(dish, post, foot, m, lb, pr); pickables.push(pr);
+    return t;
   });
   const clearBtn = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.012, 0.04), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }));
-  clearBtn.position.set(0.2, TRAY.top + 0.006, trayZ); clearBtn.userData = { kind: "clear" }; world.add(clearBtn); pickables.push(clearBtn);
-  const clearLb = label([{ t: "Clear" }], 0.014); clearLb.position.set(0.2, TRAY.top + 0.024, trayZ); world.add(clearLb);
-  const trayLb = label([{ t: "Take charges from here · put them back to remove" }], 0.011);
-  trayLb.position.set(0, TRAY.top + 0.004, TRAY.z1 + 0.012); world.add(trayLb);
+  clearBtn.position.set(SHELF.x, 0.006, 0.3); clearBtn.userData = { kind: "clear" }; world.add(clearBtn); pickables.push(clearBtn);
+  const clearLb = label([{ t: "Clear" }], 0.014); clearLb.position.set(SHELF.x, 0.024, 0.3); world.add(clearLb);
 
   // field lines and their arrows
   const lineMat = new THREE.LineBasicMaterial({ color: LINE.screen });
@@ -226,11 +233,11 @@ export function startSpace3D(root, { rec } = {}) {
     const drop = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), dropMat);
     const shadow = new THREE.Mesh(new THREE.CircleGeometry(r, 24), shadowMat); shadow.rotation.x = -Math.PI / 2;
     world.add(drop, shadow);
-    const c = { q, x, y, z, r, g, mat, drop, shadow, proxies: [] };
+    const c = { q, x, y, z, r, g, mat, drop, shadow, proxies: [], out: false };
     const pb = new THREE.Mesh(new THREE.SphereGeometry(r + 0.01, 8, 6), proxyMat); pb.userData = { kind: "charge", c };
     const ph = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 6), proxyMat); ph.position.y = r + 0.022; ph.userData = { kind: "handle", c };
     g.add(pb, ph); c.proxies = [pb, ph]; pickables.push(pb, ph);
-    charges.push(c); place(c);
+    charges.push(c); place(c); setOut(c);
     return c;
   }
   function place(c) {
@@ -239,7 +246,13 @@ export function startSpace3D(root, { rec } = {}) {
     a.setXYZ(0, c.x, c.y - c.r, c.z); a.setXYZ(1, c.x, 0.001, c.z); a.needsUpdate = true;
     c.drop.computeLineDistances();
     c.shadow.position.set(c.x, 0.0012, c.z);
-    dirty = true;
+    if (!c.out) dirty = true;
+  }
+  /** Only a charge above the table makes the field; anywhere else it is shown faded and left out. */
+  function setOut(c) {
+    const out = !(Math.abs(c.x) < TABLE && Math.abs(c.z) < TABLE);
+    if (out !== c.out) dirty = true;
+    c.out = out; c.mat.opacity = out ? 0.5 : 1; c.drop.visible = c.shadow.visible = !out;
   }
   function removeCharge(c) {
     world.remove(c.g, c.drop, c.shadow);
@@ -255,7 +268,7 @@ export function startSpace3D(root, { rec } = {}) {
 
   function rebuild() {
     dirty = false;
-    const ch = charges.filter((c) => !c.leaving).map((c) => ({ q: c.q, x: c.x, y: c.y, z: c.z }));
+    const ch = charges.filter((c) => !c.out && !c.falling).map((c) => ({ q: c.q, x: c.x, y: c.y, z: c.z }));
     const lines = ch.length ? fieldLines(ch, perQ) : [];
     const seg = [];
     let n = 0;
@@ -284,7 +297,6 @@ export function startSpace3D(root, { rec } = {}) {
 
   // ---------- dragging: one set of rules for mouse, finger, controller and hand ----------
   const ray = new THREE.Raycaster();
-  const inTray = (p) => p.x > TRAY.x0 && p.x < TRAY.x1 && p.z > TRAY.z0 - 0.01 && p.z < TRAY.z1;
   const clampTo = (v, a, b) => Math.min(b, Math.max(a, v));
   function flash(msg) {
     flashEl.textContent = msg; flashEl.hidden = false;
@@ -296,13 +308,14 @@ export function startSpace3D(root, { rec } = {}) {
     const u = hit.object.userData;
     if (u.kind === "clear") { clearAll(); return null; }
     if (u.kind === "token") {
-      if (charges.length >= MAX_CHARGES) { flash(`At most ${MAX_CHARGES} charges at a time.`); return null; }
-      const p = world.worldToLocal(hit.point.clone());
-      const c = addCharge(u.q, p.x, TRAY.top + radius(u.q), p.z);
-      c.leaving = true; c.mat.opacity = 0.55;
-      return { c, mode, h: NEW_HEIGHT, dist: hit.distance, isNew: true, del: true };
+      if (charges.filter((c) => !c.falling).length >= MAX_CHARGES) { flash(`At most ${MAX_CHARGES} charges at a time.`); return null; }
+      const t = u.t;
+      const c = addCharge(t.q, t.x, SHELF.top + radius(t.q), t.z);
+      t.mesh.scale.setScalar(0.01); t.grow = 0;          // a new charge hatches on the tray
+      return { c, mode, h: c.y, dist: hit.distance, isNew: true };
     }
     const c = u.c;
+    if (c.falling) return null;
     if (mode === "screen" && u.kind === "handle") {
       const n = new THREE.Vector3().subVectors(camera.position, c.g.position).setY(0).normalize();
       return { c, mode: "lift", plane: new THREE.Plane().setFromNormalAndCoplanarPoint(n, c.g.position.clone()) };
@@ -313,31 +326,30 @@ export function startSpace3D(root, { rec } = {}) {
   /** Move the dragged charge along a ray given in the scene's own coordinates. */
   function follow(d, o, dir) {
     const c = d.c;
-    let x = c.x, y = c.y, z = c.z, del = false;
+    if (c.falling) return;
     if (d.mode === "lift") {
       const p = new THREE.Ray(o, dir).intersectPlane(d.plane, new THREE.Vector3());
       if (!p) return;
-      y = clampTo(p.y, REGION.y0, REGION.y1);
-    } else if (d.mode === "screen") {
-      const t0 = (TRAY.top - o.y) / dir.y;
-      const p0 = t0 > 0 ? o.clone().addScaledVector(dir, t0) : null;
-      if (p0 && inTray(p0)) { x = p0.x; z = p0.z; y = TRAY.top + c.r; del = true; }
-      else {
-        const t = (d.h - o.y) / dir.y; if (!(t > 0)) return;
-        const p = o.clone().addScaledVector(dir, t);
-        x = clampTo(p.x, -REGION.x, REGION.x); z = clampTo(p.z, -REGION.z, REGION.z); y = d.h;
-      }
-    } else { // controller or hand: the charge stays at the same distance along the ray, so it moves freely in 3D
+      c.y = clampTo(p.y, Y0, Y1);
+    } else if (d.mode === "screen") {                  // slide at the charge's own height
+      const t = (d.h - o.y) / dir.y; if (!(t > 0)) return;
+      const p = o.clone().addScaledVector(dir, t);
+      c.x = clampTo(p.x, -REACH, REACH); c.z = clampTo(p.z, -REACH, REACH);
+    } else {                                           // controller or hand: same distance along the ray, so free 3D
       const p = o.clone().addScaledVector(dir, d.dist);
-      if (inTray(p) && p.y < 0.07) { x = p.x; z = p.z; y = TRAY.top + c.r; del = true; }
-      else { x = clampTo(p.x, -REGION.x, REGION.x); y = clampTo(p.y, REGION.y0, REGION.y1); z = clampTo(p.z, -REGION.z, REGION.z); }
+      c.x = clampTo(p.x, -REACH, REACH); c.y = clampTo(p.y, Y0, Y1); c.z = clampTo(p.z, -REACH, REACH);
     }
-    d.del = del; c.leaving = del; c.mat.opacity = del ? 0.45 : 1;
-    c.x = x; c.y = y; c.z = z; place(c);
+    place(c); setOut(c);
   }
+  /** Let go: above the table the charge stays; back on a tray it is put away; anywhere else it falls and is gone. */
   function drop(d) {
-    if (d.del) { removeCharge(d.c); if (!d.isNew) log("remove", { q: d.c.q }); }
-    else { d.c.leaving = false; d.c.mat.opacity = 1; dirty = true; log(d.isNew ? "add" : "move", { q: d.c.q, at: [d.c.x, d.c.y, d.c.z].map((v) => +v.toFixed(3)) }); }
+    const c = d.c;
+    const at = [c.x, c.y, c.z].map((v) => +v.toFixed(3));
+    if (!c.out) { dirty = true; log(d.isNew ? "add" : "move", { q: c.q, at }); return; }
+    const onTray = trays.some((t) => Math.hypot(c.x - t.x, c.z - t.z) < SHELF.r + 0.012 && Math.abs(c.y - SHELF.top) < 0.06);
+    if (onTray) removeCharge(c);
+    else { c.falling = true; c.vy = 0; }
+    if (!d.isNew) log(onTray ? "put back" : "drop off table", { q: c.q });
   }
   const toLocal = (o, dir) => [world.worldToLocal(o.clone()), dir.clone()]; // the scene is only moved, never turned
 
@@ -443,7 +455,7 @@ export function startSpace3D(root, { rec } = {}) {
   xrBar.querySelector(".v3-exit").addEventListener("click", () => renderer.xr.getSession()?.end());
 
   renderer.xr.addEventListener("sessionstart", () => {
-    world.position.set(0, -0.42, -0.6);                // the space sits a little below the eyes, at arm's length
+    world.position.set(-0.07, -0.42, -0.6);               // the space sits a little below the eyes, at arm's length
     scene.background = xrMode === "vr" ? new THREE.Color(COLOR.vr) : null;
     floorMat.opacity = xrMode === "vr" ? 0.12 : 0.35;
     lineMat.color.setHex(LINE.xr); arrowMat.color.setHex(LINE.xr);
@@ -478,9 +490,16 @@ export function startSpace3D(root, { rec } = {}) {
   root.querySelector(".v3-density").addEventListener("change", (e) => { perQ = +e.target.value; dirty = true; log("density", { perQ }); });
   root.querySelector(".v3-view").addEventListener("click", resetView);
 
+  const clock = new THREE.Clock();
   renderer.setAnimationLoop(() => {
+    const dt = Math.min(clock.getDelta(), 0.05);
     const xr = renderer.xr.isPresenting;
     if (!xr && !stage.offsetParent) return;           // step not on screen: nothing to draw
+    for (const c of [...charges]) if (c.falling) {
+      c.vy -= 4 * dt; c.y += c.vy * dt; place(c);
+      if (c.y < -0.6) removeCharge(c);
+    }
+    for (const t of trays) if (t.grow < 1) { t.grow = Math.min(1, t.grow + dt / 0.35); t.mesh.scale.setScalar(Math.max(0.01, t.grow)); }
     if (xr) ctrls.forEach((c) => { if (c.userData.drag) { ctrlRay(c); follow(c.userData.drag, ...toLocal(ray.ray.origin, ray.ray.direction)); } });
     if (dirty) rebuild();
     if (!xr) controls.update();
