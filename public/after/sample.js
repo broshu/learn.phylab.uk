@@ -34,15 +34,9 @@ export function makeClass(n = 50, seed = 41) {
     const first = judgeHunt({ x: gx, y: gy, a: rad(guess.a) }, { x: 0, y: 0, a: 0 });
     const hunt = { first, readings: 3 + Math.floor(r() * 6) };
 
-    // part 2, only for students who found it: settle behind the tail
-    let behind = null, dist = null;
+    // part 2, only for students who found it. Every simulated student starts 4 cm away and reads at 0 and 2 cm backed off.
+    let dist = null;
     if (first.caught) {
-      const b2 = r();
-      behind = { kind: b2 < 0.72 ? "ok" : b2 < 0.87 ? "front" : "close", hints: r() < 0.35 ? 1 + Math.floor(r() * 2) : 0 };
-    }
-
-    // part 3, only for students who got behind it. Every simulated student settles 4 cm away and reads at 0 and 2 cm backed off.
-    if (behind && behind.kind === "ok") {
       const pins = [{ b: 0, E: axisField(4) }, { b: 2, E: axisField(6) }];
       const d = r();
       let ans, used = pins;
@@ -63,7 +57,7 @@ export function makeClass(n = 50, seed = 41) {
       const a = q < 0.5 ? RANGE * span(0.92, 1.08) : q < 0.78 ? RANGE * 10 ** ([-4, -3, 2, 4][Math.floor(r() * 4)] / 3) : q < 0.92 ? RANGE_SIDE : r() < 0.5 ? 3 : 20;
       range = judgeRange(a);
     }
-    students.push({ id: "S" + String(k + 1).padStart(2, "0"), teach, hunt, behind, dist, hunts, range });
+    students.push({ id: "S" + String(k + 1).padStart(2, "0"), teach, hunt, dist, hunts, range });
   }
   return students;
 }
