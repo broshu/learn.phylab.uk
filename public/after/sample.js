@@ -23,7 +23,7 @@ export function makeClass(n = 50, seed = 41) {
     const v = { A, B, C };
     const teach = { v, result: judgeTeach(v), help: r() < 0.42, ring: r() < 0.88 };
 
-    // step 2: the first strike, seen from the real shrimp
+    // step 2, part 1: the first guess, seen from the real shrimp
     const h = r();
     let guess;
     if (h < 0.46) guess = { d: span(0, 1), a: sign() * span(0, 38) };
@@ -32,19 +32,29 @@ export function makeClass(n = 50, seed = 41) {
     else guess = { d: span(1.5, 3.2), a: span(0, 360) };
     const [gx, gy] = polar(guess.d, rad(span(0, 360)));
     const first = judgeHunt({ x: gx, y: gy, a: rad(guess.a) }, { x: 0, y: 0, a: 0 });
-    const hunt = { first, strikes: first.caught ? 1 : 2 + (r() < 0.35 ? 1 : 0) + (r() < 0.15 ? 1 : 0), readings: 3 + Math.floor(r() * 6) };
+    const hunt = { first, readings: 3 + Math.floor(r() * 6) };
 
-    // step 3: the first lunge. Every simulated student starts 4 cm away and reads at 0 and 2 cm backed off.
-    const pins = [{ b: 0, E: axisField(4) }, { b: 2, E: axisField(6) }];
-    const d = r();
-    let ans, used = pins;
-    if (d < 0.52) ans = 4 * span(0.9, 1.1);
-    else if (d < 0.76) ans = (2 / (Math.sqrt(pins[0].E / pins[1].E) - 1)) * span(0.95, 1.05);
-    else if (d < 0.86) ans = 6 * span(0.97, 1.03);
-    else if (d < 0.9) { ans = span(6.5, 9); used = [pins[0]]; }
-    else ans = 4 * (r() < 0.5 ? span(1.25, 1.36) : span(1.7, 2.3));
-    const lunge = judgeDistance(ans, 4, used);
-    const dist = { first: lunge, strikes: lunge.caught ? 1 : 2 + (r() < 0.3 ? 1 : 0) };
+    // part 2, only for students who found it: settle behind the tail
+    let behind = null, dist = null;
+    if (first.caught) {
+      const b2 = r();
+      behind = { kind: b2 < 0.72 ? "ok" : b2 < 0.87 ? "front" : "close", hints: r() < 0.35 ? 1 + Math.floor(r() * 2) : 0 };
+    }
+
+    // part 3, only for students who got behind it. Every simulated student settles 4 cm away and reads at 0 and 2 cm backed off.
+    if (behind && behind.kind === "ok") {
+      const pins = [{ b: 0, E: axisField(4) }, { b: 2, E: axisField(6) }];
+      const d = r();
+      let ans, used = pins;
+      if (d < 0.52) ans = 4 * span(0.9, 1.1);
+      else if (d < 0.76) ans = (2 / (Math.sqrt(pins[0].E / pins[1].E) - 1)) * span(0.95, 1.05);
+      else if (d < 0.86) ans = 6 * span(0.97, 1.03);
+      else if (d < 0.9) { ans = span(6.5, 9); used = [pins[0]]; }
+      else ans = 4 * (r() < 0.5 ? span(1.25, 1.36) : span(1.7, 2.3));
+      dist = { first: judgeDistance(ans, 4, used) };
+    }
+    const clean = dist && dist.first.caught;
+    const hunts = clean ? 1 : 2 + (r() < 0.4 ? 1 : 0) + (r() < 0.15 ? 1 : 0);
 
     // optional question
     let range = null;
@@ -53,7 +63,7 @@ export function makeClass(n = 50, seed = 41) {
       const a = q < 0.5 ? RANGE * span(0.92, 1.08) : q < 0.78 ? RANGE * 10 ** ([-4, -3, 2, 4][Math.floor(r() * 4)] / 3) : q < 0.92 ? RANGE_SIDE : r() < 0.5 ? 3 : 20;
       range = judgeRange(a);
     }
-    students.push({ id: "S" + String(k + 1).padStart(2, "0"), teach, hunt, dist, range });
+    students.push({ id: "S" + String(k + 1).padStart(2, "0"), teach, hunt, behind, dist, hunts, range });
   }
   return students;
 }

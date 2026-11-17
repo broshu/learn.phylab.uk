@@ -1,14 +1,13 @@
 // learn.phylab.uk — After class (/after/): a young platypus learns to hunt.
-// 1 the mother teaches (help allowed), 2 hunt 1: find the shrimp, 3 hunt 2: how far is it (both without help).
+// 1 the mother teaches (help allowed), 2 the hunt, without help: find the shrimp, get behind it, work out how far it is.
 // Same demonstration layout as the other parts: student on the left, teacher back end on the right.
 import { openRecord, resetButtons } from "/assets/record.js";
 import { makeClass } from "/after/sample.js";
 import { startTeach } from "/after/teach.js";
 import { startHunt } from "/after/hunt.js";
-import { startDistance } from "/after/distance.js";
 
 const rec = openRecord("after");
-const ORDER = ["teach", "hunt", "dist"];
+const ORDER = ["teach", "hunt"];
 let state = rec.get("state");
 if (!state || !ORDER.includes(state.step)) state = { step: "teach" };
 const $ = (id) => document.getElementById(id);
@@ -27,9 +26,7 @@ document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click"
 document.querySelectorAll("[data-next]").forEach((b) => b.addEventListener("click", () => show(b.dataset.next)));
 
 const cls = makeClass();
-let dist = null;
 startTeach({ student: $("teachStudent"), teacher: $("teachTeacher"), rec, cls });
-startHunt({ student: $("huntStudent"), teacher: $("huntTeacher"), rec, cls, onChange: () => dist && dist.refresh() });
-dist = startDistance({ student: $("distStudent"), teacher: $("distTeacher"), rec, cls });
+startHunt({ student: $("huntStudent"), teacher: $("huntTeacher"), rec, cls });
 show(state.step, true);
 resetButtons(document.querySelectorAll(".reset-demo"));

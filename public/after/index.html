@@ -59,6 +59,14 @@
   .ansrow { display: flex; align-items: center; gap: 8px; }
   .ansrow input { width: 110px; font: 1.05rem var(--sans); padding: 8px 10px; border: 1px solid #b9c0cc; border-radius: 8px; background: #fff; }
   .ansrow input:disabled { background: #f1f2f5; }
+  .tstack > .card { margin-bottom: 16px; }
+  ol.hparts { list-style: none; display: flex; gap: 6px; padding: 0; margin: 0 0 10px; flex-wrap: wrap; }
+  ol.hparts li { flex: 1 1 0; min-width: 0; padding: 6px 10px; border-radius: 7px; background: #eef0f4; color: var(--ink-soft); font-size: 0.88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  ol.hparts li b { opacity: 0.6; margin-right: 3px; }
+  ol.hparts li.now { background: var(--ink); color: #fff; }
+  ol.hparts li.ok { background: var(--accent-soft); color: var(--accent); }
+  ol.hparts li.no { background: #fbeceb; color: var(--pos); }
+  .htask { margin: 0 0 12px; min-height: 1.5em; }
   .dist.wide { height: 112px; gap: 4px; }
   .dist.wide div { font-size: 0.7rem; line-height: 1.2; }
   .dist.wide div.me i { outline: 2.5px solid #d98200; outline-offset: 1px; }
@@ -83,8 +91,7 @@
     <div class="scol"><span class="role">Student</span>
   <ol id="stepper">
     <li><button type="button" data-go="teach"><b>1</b><span>Learn to hunt</span></button></li>
-    <li><button type="button" data-go="hunt"><b>2</b><span>Hunt 1: find it</span></button></li>
-    <li><button type="button" data-go="dist"><b>3</b><span>Hunt 2: how far</span></button></li>
+    <li><button type="button" data-go="hunt"><b>2</b><span>The hunt</span></button></li>
   </ol></div>
     <div class="tcol"><span class="role t">Teacher back end</span><span class="txt">hidden from students</span><a href="/teacher/" target="_blank" rel="opener">full page</a></div>
   </div>
@@ -101,37 +108,23 @@
       <p class="intro">You are a young platypus. Under water you shut your eyes, ears and nostrils, and find food with your bill, which feels the weak electric fields that living prey give off. Before your first hunt, your mother shows you what the field of a shrimp looks like. In this part you may ask her for help.</p>
       <div id="teachStudent"></div>
       <p class="muted small" style="margin:14px 0 0">The model: a shrimp is treated as an electric dipole and the bill as reading the field at one point. A real platypus also uses touch receptors in its bill, and the shrimp's dipole moment is a value chosen for this game. The sensitivity of the bill, about 50 &micro;V/cm, is a measured value (Scheich et al., <em>Nature</em> 319, 1986).</p>
-      <div class="nav"><a class="btn ghost" href="/during/">In class</a><button class="btn" data-next="hunt">Next: hunt 1</button></div>
+      <div class="nav"><a class="btn ghost" href="/during/">In class</a><button class="btn" data-next="hunt">Next: the hunt</button></div>
     </div>
     <aside class="tcol tend"><div class="card tcard" id="teachTeacher"></div><button type="button" class="btn reset-demo" title="Clear the answers saved in this browser and start again">Reset demo</button></aside>
   </div>
 </section>
 
-<!-- 2 · HUNT 1: WHERE IS IT, WHICH WAY DOES IT FACE (unaided) -->
+<!-- 2 · THE HUNT, unaided: find it, get behind it, how far -->
 <section class="step" id="s-hunt">
   <div class="row">
     <div class="scol">
       <span class="tag">On your own</span>
-      <h1>Hunt 1: find the shrimp</h1>
-      <p class="intro">From here on your mother does not help. The water is murky and a shrimp is hiding in the silt. Drag your bill around the silt: each time you let go, the reading stays on the picture. Then drag the dashed shrimp to where you think the real one is, turn it to face the way you think it faces, and strike. You must be within 1.2 cm of it and within 45° of its heading. Come at it from the wrong end and it shoots off backwards; then you go home, and your mother explains what went wrong.</p>
+      <h1>The hunt</h1>
+      <p class="intro">From here on your mother does not help. The water is murky and a shrimp is hiding in the silt. Find it from its field, swim round behind its tail, work out how far away it is, and lunge. A mistake at any point and it gets away; you go home, your mother explains what went wrong, and you try another shrimp.</p>
       <div id="huntStudent"></div>
-      <div class="nav"><button class="btn ghost" data-next="teach">Back</button><button class="btn" data-next="dist">Next: hunt 2</button></div>
+      <div class="nav"><button class="btn ghost" data-next="teach">Back</button><a class="btn" href="/">Back to the lesson</a></div>
     </div>
-    <aside class="tcol tend"><div class="card tcard" id="huntTeacher"></div><button type="button" class="btn reset-demo" title="Clear the answers saved in this browser and start again">Reset demo</button></aside>
-  </div>
-</section>
-
-<!-- 3 · HUNT 2: HOW FAR AWAY IS IT (unaided, with a calculation) -->
-<section class="step" id="s-dist">
-  <div class="row">
-    <div class="scol">
-      <span class="tag">On your own</span>
-      <h1>Hunt 2: how far is it?</h1>
-      <p class="intro">This shrimp is straight ahead, deep in the silt, and you are on its axis, behind its tail. You get one lunge, and it must be the right length, within 15%. Swim closer and it will feel you coming; but you can back off along the dashed line and read the field again. Work out how far the shrimp is from your starting spot, then lunge. It is far enough away for the dipole formulas your mother showed you.</p>
-      <div id="distStudent"></div>
-      <div class="nav"><button class="btn ghost" data-next="hunt">Back</button><a class="btn" href="/">Back to the lesson</a></div>
-    </div>
-    <aside class="tcol tend"><div class="card tcard" id="distTeacher"></div><button type="button" class="btn reset-demo" title="Clear the answers saved in this browser and start again">Reset demo</button></aside>
+    <aside class="tcol tend"><div id="huntTeacher" class="tstack"></div><button type="button" class="btn reset-demo" title="Clear the answers saved in this browser and start again">Reset demo</button></aside>
   </div>
 </section>
 

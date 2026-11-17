@@ -48,6 +48,20 @@ export function bill(b, ctx, x, y, a, alpha = 1) {
   ctx.restore();
 }
 
+/** Is the point (x, y) on the platypus drawn by bill() with its tip at (tx, ty) facing a? */
+export function onBill(tx, ty, a, x, y) {
+  const dx = x - tx, dy = y - ty, c = Math.cos(-a), s = Math.sin(-a);
+  const lx = dx * c - dy * s, ly = dx * s + dy * c;
+  return lx > -3.9 && lx < 0.35 && Math.abs(ly) < 1.05;
+}
+
+/** The grip ring at the bill tip, where the reading arrow starts: shows the platypus can be dragged. */
+export function grip(b, ctx, x, y) {
+  const [px, py] = b.px(x, y);
+  ctx.save(); ctx.fillStyle = "rgba(217,130,0,0.18)"; ctx.strokeStyle = "#d98200"; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.arc(px, py, 12, 0, 7); ctx.fill(); ctx.stroke(); ctx.restore();
+}
+
 /**
  * A shrimp seen from above at (x, y) facing the angle a.
  * opt: color, alpha, dash (outline only, for a guess), charges (draw the + and − of the model).

@@ -61,13 +61,22 @@ export function judgeRing(angle, shrimpAngle = 0) {
   return Math.min(d, 180 - d) <= 25;
 }
 
-// ---------- step 2 · hunt 1: where is the shrimp, and which way does it face ----------
-export const HUNT = { W: 14, H: 9, silt: { x0: 4, x1: 10, y0: 2.5, y1: 6.5 }, inset: 0.9, keepOut: 0.3, POS: 1.2, ANG: 45 };
+// ---------- step 2 · the hunt, part 1: where is the shrimp, and which way does it face ----------
+export const HUNT = { W: 14, H: 9, silt: { x0: 4, x1: 10, y0: 2.5, y1: 6.5 }, inset: 0.9, keepOut: 0.3, POS: 1.2, ANG: 45, ROOM: 5.2 };
 export const HUNT_KINDS = {
-  position: { label: "Wrong place", why: "struck more than 1.2 cm from the shrimp" },
+  position: { label: "Wrong place", why: "marked more than 1.2 cm from the shrimp" },
   reversed: { label: "Head and tail swapped", why: "right place, shrimp drawn facing the opposite way" },
   angle: { label: "Wrong heading", why: "right place, heading off by more than 45°" },
 };
+/** A hidden shrimp somewhere in the silt, with room behind its tail for the platypus to back off. */
+export function newTruth(rand = Math.random) {
+  const { silt: Z, inset, W, H, ROOM } = HUNT;
+  for (;;) {
+    const t = { x: Z.x0 + inset + rand() * (Z.x1 - Z.x0 - 2 * inset), y: Z.y0 + inset + rand() * (Z.y1 - Z.y0 - 2 * inset), a: rand() * 2 * Math.PI };
+    const bx = t.x - ROOM * Math.cos(t.a), by = t.y - ROOM * Math.sin(t.a);
+    if (bx > 0.3 && bx < W - 0.3 && by > 0.3 && by < H - 0.3) return { x: +t.x.toFixed(2), y: +t.y.toFixed(2), a: +t.a.toFixed(3) };
+  }
+}
 /**
  * guess, truth: { x, y, a }. Returns the kind of result and the guess seen from the real shrimp
  * (rel: where the guess is with the real shrimp at the origin facing right; turn: heading error in degrees).
@@ -79,8 +88,39 @@ export function judgeHunt(guess, truth) {
   return { kind, caught: kind === "caught", dist, turn, rel: [dx * c - dy * s, dx * s + dy * c] };
 }
 
-// ---------- step 3 · hunt 2: how far away is it ----------
-export const DIST = { W: 14, H: 5, y: 2.5, start: 7, back: 6, TOL: 0.15 };
+// ---------- step 2 · the hunt, part 2: get behind its tail ----------
+export const BEHIND = { CLOSE: 3, AXIS: 15, FRONT: 60, ROOM: 1 };
+export const BEHIND_KINDS = {
+  close: { label: "Came closer than 3 cm", why: "the shrimp felt the water move", fatal: true },
+  front: { label: "Came round to its head", why: "the shrimp saw it coming", fatal: true },
+  off: { label: "Not on the axis yet", why: "told to keep looking", fatal: false },
+  weak: { label: "Too far to feel it", why: "told to come closer", fatal: false },
+  room: { label: "No room to back off", why: "told to settle closer", fatal: false },
+};
+/** Bill tip at (x, y). Fatal kinds end the hunt; the others are hints. ok: settled on the axis behind the tail. */
+export function judgeBehind(x, y, truth) {
+  const dx = x - truth.x, dy = y - truth.y, r = Math.hypot(dx, dy);
+  const from = Math.atan2(dy, dx);
+  const front = Math.abs(deg(wrap(from - truth.a))), back = Math.abs(deg(wrap(from - truth.a - Math.PI)));
+  let kind = "ok";
+  if (r < BEHIND.CLOSE) kind = "close";
+  else if (front <= BEHIND.FRONT) kind = "front";
+  else if (back > BEHIND.AXIS) kind = "off";
+  else if (Math.hypot(...fieldAt(truth, x, y)) < THRESH) kind = "weak";
+  else if (roomBehind(truth, r) < BEHIND.ROOM) kind = "room";
+  return { kind, r, back };
+}
+/** How far the bill can back off along the axis, from r behind the shrimp's centre, before leaving the river. */
+export function roomBehind(truth, r) {
+  const ux = -Math.cos(truth.a), uy = -Math.sin(truth.a);
+  let s = 30;
+  if (ux > 1e-6) s = Math.min(s, (HUNT.W - 0.3 - truth.x) / ux); else if (ux < -1e-6) s = Math.min(s, (0.3 - truth.x) / ux);
+  if (uy > 1e-6) s = Math.min(s, (HUNT.H - 0.3 - truth.y) / uy); else if (uy < -1e-6) s = Math.min(s, (0.3 - truth.y) / uy);
+  return s - r;
+}
+
+// ---------- step 2 · the hunt, part 3: how far away is it ----------
+export const DIST = { TOL: 0.15 };
 export const DIST_KINDS = {
   square: { label: "Used 1/r² (one point charge)", why: "the answer fits an inverse-square field" },
   spot: { label: "Measured from the wrong spot", why: "the answer is the distance from where they backed off to" },

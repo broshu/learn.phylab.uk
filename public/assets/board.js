@@ -104,6 +104,12 @@ export class Board {
       const d = Math.hypot(mx - hx, my - hy);
       if (d < bestD) { bestD = d; best = h; }
     }
+    this._off = [0, 0];
+    if (!best) { // a handle may also be grabbed anywhere on its shape (e.g. the whole platypus), keeping the grab point
+      const [ux, uy] = this.units(mx, my);
+      best = this.handles.find((h) => h.hit && h.hit(ux, uy)) || null;
+      if (best) this._off = [best.x - ux, best.y - uy];
+    }
     if (!best) return;
     this._drag = best; best.touched = true;
     this.canvas.setPointerCapture(e.pointerId); e.preventDefault();
@@ -113,6 +119,7 @@ export class Board {
   _move(e) {
     const h = this._drag; if (!h) return;
     let [x, y] = this.units(...this._point(e));
+    if (this._off) { x += this._off[0]; y += this._off[1]; }
     if (h.snap) { x = Math.round(x / h.snap) * h.snap; y = Math.round(y / h.snap) * h.snap; }
     x = Math.max(0.25, Math.min(this.wU - 0.25, x));
     y = Math.max(0.25, Math.min(this.hU - 0.25, y));
