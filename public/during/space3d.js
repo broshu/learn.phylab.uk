@@ -213,10 +213,13 @@ function seeds(o, n, turn, objs) {
 /** All field lines. Lines start on positive objects; a negative object that receives fewer lines than its
  *  charge calls for gets the rest traced backwards from it, from the places where no line arrives yet. */
 function fieldLines(objs, perQ) {
+  // the same objects always give the same lines, whatever order they were put on the table in
+  // (so a correct match lies exactly on the target field)
+  objs = objs.slice().sort((a, b) => a.kind.localeCompare(b.kind) || a.q - b.q || a.x - b.x || a.y - b.y || a.z - b.z);
   const lines = [], arrive = objs.map(() => []);
   objs.forEach((o, i) => {
     if (o.q <= 0) return;
-    for (const p of seeds(o, Math.round(perQ * o.q), i, objs)) {
+    for (const p of seeds(o, Math.round(perQ * o.q), 0, objs)) {
       const t = trace(objs, p, 1);
       lines.push({ pts: t.pts, start: true, end: t.end >= 0 });
       if (t.end >= 0) { const n = t.pts.length; arrive[t.end].push([t.pts[n - 3], t.pts[n - 2], t.pts[n - 1]]); }
@@ -224,7 +227,7 @@ function fieldLines(objs, perQ) {
   });
   objs.forEach((o, i) => {
     if (o.q >= 0) return;
-    const ss = seeds(o, Math.round(perQ * -o.q), i, objs);
+    const ss = seeds(o, Math.round(perQ * -o.q), 0, objs);
     for (const a of arrive[i]) {
       if (!ss.length) break;
       let best = 0, bd = Infinity;
@@ -503,6 +506,22 @@ export function startSpace3D(root, { rec, mode: task = "explore", target = [], j
       new THREE.Vector3(u * SIZE.plate, 0, w * SIZE.plate).applyQuaternion(c.quat).add(new THREE.Vector3(c.x, c.y, c.z))).map((v) => [+v.x.toFixed(4), +v.z.toFixed(4)]) }));
   function check() {
     const placed = placedNow(), result = judge ? judge(placed) : null;
+    // matched within the tolerance: move the objects onto the exact places, so the two fields lie on each other
+    // (field lines are sensitive: 2 cm out is right, but the lines would visibly part)
+    if (result && result.ok) {
+      const used = new Set();
+      for (const t of target) {
+        let best = null, bd = Infinity;
+        for (const c of charges) if (!c.out && !c.falling && !used.has(c) && c.kind === t.kind && Math.sign(c.q) === Math.sign(t.q)) {
+          const d = Math.hypot(c.x - t.x, c.y - t.y, c.z - t.z); if (d < bd) { bd = d; best = c; }
+        }
+        if (!best) continue;
+        used.add(best);
+        best.x = t.x; best.y = t.y; best.z = t.z;
+        if (best.kind !== "point") { best.yaw = (t.turn || 0) * DEG; best.tilt = (t.tilt || 0) * DEG; best.quat = orient(best.yaw, best.tilt); }
+        turned(best);
+      }
+    }
     shown = true; mine.show(true); dirty = true;
     if (result) showResult(result.ok ? "Matched!" : `Not yet: ${result.items.filter((i) => i.status !== "ok").length} to fix`);
     log("check", { ok: result && result.ok, placed });

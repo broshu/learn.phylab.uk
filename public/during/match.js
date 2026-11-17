@@ -52,7 +52,7 @@ export function startMatch({ student, teacher, rec }) {
   function feedback(r, placed) {
     if (!placed.length) return `<p class="note warn" style="margin:0"><strong>The table is empty.</strong> Take objects from the trays and place them to make the orange field.</p>`;
     const head = r.ok
-      ? `<p class="note" style="margin:0"><strong>Matched.</strong> Your field (dark lines) lies on the orange one. The orange field comes from a point charge +2<i>q</i>, a point charge &minus;<i>q</i> and a negatively charged plate: half of the lines from +2<i>q</i> end on &minus;<i>q</i>, the other half on the plate.</p>`
+      ? `<p class="note" style="margin:0"><strong>Matched.</strong> Your objects were close enough, so they have been moved onto the exact places: now your field (dark lines) lies on the orange one. The orange field comes from a point charge +2<i>q</i>, a point charge &minus;<i>q</i> and a negatively charged plate: half of the lines from +2<i>q</i> end on &minus;<i>q</i>, the other half on the plate.</p>`
       : `<p class="note warn" style="margin:0"><strong>Not yet.</strong> Your field is drawn in dark lines over the orange one. Change your objects, then check again; your lines hide while you change them.</p>`;
     const items = r.items.filter((i) => !r.ok || i.status !== "ok").map((i) =>
       `<li><b style="color:${i.status === "ok" ? OK : i.status === "extra" ? EXTRA : BAD}">${i.status === "ok" ? "Right" : i.status === "extra" ? "Extra" : "Fix"}:</b> ${i.msg}</li>`);
