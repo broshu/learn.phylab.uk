@@ -4,6 +4,7 @@
 import { Board, arrow, symbol, charge, INK, SOFT, MINE, RIGHT } from "/assets/board.js";
 import { judgeVectors, judgePointField, judgeCoulomb, judgeForce } from "/assets/checkin-judge.js";
 import { rodGravity } from "/before/rod.js";
+import { CHECKIN_KEY, KEEP, VERSIONS, load, save } from "/assets/store.js";
 
 const $ = (id) => document.getElementById(id);
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
@@ -14,7 +15,6 @@ const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
 const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
 /** Angle between two vectors, in degrees (0 to 180). */
 const between = (a, b) => deg(Math.acos(Math.max(-1, Math.min(1, (a[0] * b[0] + a[1] * b[1]) / (len(a) * len(b))))));
-const STORE = "learn.phylab.uk/checkin-trial/v2";
 const M = (s) => `<math>${s}</math>`;
 const V = (l) => M(`<mover><mi>${l}</mi><mo>&#x2192;</mo></mover>`);
 const draw = (b, ctx, from, to, color, width, dash) => arrow(ctx, ...b.px(...from), ...b.px(...to), color, width, dash);
@@ -320,12 +320,11 @@ export function startCheckin(options = {}) {
   function submit() {
     results = items.map((it) => ({ it, ...(it.custom || it.ready() ? it.judge() : { ok: false, error: "Not answered", skipped: true, data: {}, norm: null }) }));
     items.forEach((it) => { if (it.custom) it.lock(); else { it.board.locked = true; it.board.draw(); } });
-    const kept = results.map((r) => ({ id: r.it.id, ok: r.ok, error: r.error, skipped: !!r.skipped, norm: r.norm, parts: r.parts }));
-    try { // keep the submission in this browser, so the teacher view can show it next to the sample class
-      const all = JSON.parse(localStorage.getItem(STORE) || "[]");
-      all.push({ t: Date.now(), seconds: Math.round((Date.now() - startedAt) / 1000), results: kept });
-      localStorage.setItem(STORE, JSON.stringify(all.slice(-20)));
-    } catch { /* storage unavailable */ }
+    const kept = results.map((r) => ({ id: r.it.id, v: VERSIONS[r.it.id], ok: r.ok, error: r.error, skipped: !!r.skipped, norm: r.norm, parts: r.parts }));
+    // keep the submission in this tab, so the teacher view can show it next to the sample class
+    const all = load(CHECKIN_KEY, []);
+    all.push({ t: Date.now(), seconds: Math.round((Date.now() - startedAt) / 1000), results: kept });
+    save(CHECKIN_KEY, all.slice(-KEEP));
     const right = results.filter((r) => r.ok).length, skipped = results.filter((r) => r.skipped).length;
     const missed = results.filter((r) => !r.ok && !r.skipped);
     results.filter((r) => r.it.custom && !r.skipped).forEach((r) => r.it.showResult(r));

@@ -1,26 +1,19 @@
 // learn.phylab.uk — what each page records about a student's work.
-// For now the record lives in this browser only (localStorage).
+// For now the record lives in this tab only (sessionStorage, see store.js): gone when the tab is closed.
 // When the database is added, send() below is the single place that posts it to /api.
 
-const KEY = "learn.phylab.uk/record/v1";
+import { RECORD_KEY as KEY, load, save, clearAll as clearStore } from "/assets/store.js";
 
 function read() {
-  try {
-    return JSON.parse(localStorage.getItem(KEY)) || {};
-  } catch {
-    return {};
-  }
+  const all = load(KEY, {});
+  return all && typeof all === "object" ? all : {};
 }
 
 let cleared = false; // after a reset nothing more is written, so the page cannot put old answers back while it reloads
 
 function write(all) {
   if (cleared) return;
-  try {
-    localStorage.setItem(KEY, JSON.stringify(all));
-  } catch {
-    /* storage unavailable: the page still works, nothing is kept */
-  }
+  save(KEY, all);
 }
 
 /** One record per part of the lesson ("before", "during", "after"). */
@@ -78,7 +71,7 @@ export function openRecord(part) {
 /** Remove everything this site saved in this browser (all parts of the lesson). */
 export function clearAll() {
   cleared = true;
-  try { Object.keys(localStorage).filter((k) => k.startsWith("learn.phylab.uk/")).forEach((k) => localStorage.removeItem(k)); } catch { /* nothing to clear */ }
+  clearStore();
 }
 
 /**

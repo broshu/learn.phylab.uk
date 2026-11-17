@@ -4,8 +4,9 @@
 import { arrow, charge, symbol } from "/assets/board.js";
 import { LIMITS, ROD_KEY } from "/assets/checkin-judge.js";
 import { cardHtml } from "/assets/rod-cards.js";
+import { CHECKIN_KEY, VERSIONS, load, save } from "/assets/store.js";
 
-export const STORE = "learn.phylab.uk/checkin-trial/v2";
+export const STORE = CHECKIN_KEY;
 const GOOD = "#0d6b5f", INK = "#1a2030", SOFT = "#8a93a6";
 const rad = (d) => (d * Math.PI) / 180;
 
@@ -27,11 +28,20 @@ export async function loadSample() {
   if (!sample) sample = await (await fetch("/teacher/checkin-sample.json")).json();
   return sample;
 }
-export function mine() { try { return JSON.parse(localStorage.getItem(STORE) || "[]"); } catch { return []; } }
-export function clearMine() { try { localStorage.removeItem(STORE); } catch { /* storage unavailable */ } }
+export function mine() { const all = load(CHECKIN_KEY, []); return Array.isArray(all) ? all : []; }
+/** Answers saved by an older version of a question are left out instead of breaking the page. */
+function fitsNow(r) {
+  if (r.v !== VERSIONS[r.id]) return false;
+  if (!r.norm || !sample) return true; // second guard: the answer must have the same shape as the sample class's
+  const known = new Set();
+  for (const s of sample.students) for (const x of s.results) if (x.id === r.id && x.norm) Object.keys(x.norm).forEach((k) => known.add(k));
+  return known.size === 0 || Object.keys(r.norm).every((k) => known.has(k));
+}
+const current = (s) => ({ ...s, results: (s.results || []).filter(fitsNow) });
+export function clearMine() { save(CHECKIN_KEY, []); }
 /** The simulated class plus the submissions made in this browser (outlined in black). */
 export function everyone() {
-  return [...sample.students.map((s) => ({ ...s, mine: false })), ...mine().map((s) => ({ ...s, mine: true }))];
+  return [...sample.students.map((s) => ({ ...s, mine: false })), ...mine().map((s) => ({ ...current(s), mine: true }))];
 }
 const NONE = { ok: false, error: "Not answered", skipped: true, norm: null, parts: null };
 const resultOf = (s, id) => s.results.find((r) => r.id === id) || NONE;
@@ -49,7 +59,7 @@ function plot(canvas, view, painter) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
     const px = (x, y) => [(x - x0) * scale, (y1 - y) * scale];
-    painter({ ctx, px, scale, w, h });
+    try { painter({ ctx, px, scale, w, h }); } catch (e) { console.warn("teacher plot skipped:", e); } // one bad answer must not blank the page
   };
   new ResizeObserver(render).observe(canvas);
   render();

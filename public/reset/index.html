@@ -6,7 +6,7 @@
 <p id="msg">Clearing the answers saved in this browser…</p>
 <script>
   // Testing helper, not linked from anywhere: removes everything this site saved in this browser, then goes home.
-  try { Object.keys(localStorage).filter((k) => k.startsWith("learn.phylab.uk/")).forEach((k) => localStorage.removeItem(k)); } catch (e) {}
+  for (const s of ["localStorage", "sessionStorage"]) { try { Object.keys(window[s]).filter((k) => k.startsWith("learn.phylab.uk/")).forEach((k) => window[s].removeItem(k)); } catch (e) {} }
   document.getElementById("msg").textContent = "Cleared. Going back to the start…";
   setTimeout(() => location.replace("/"), 600);
 </script>
