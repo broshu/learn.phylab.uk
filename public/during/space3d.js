@@ -36,10 +36,24 @@ const radius = (q) => 0.012 + 0.004 * Math.abs(q);
 /** ln(v + r) with r = √(v² + w2), accurate also when v is large and negative. */
 const lnvr = (v, r, w2) => (v >= 0 ? Math.log(v + r) : Math.log(Math.max(w2, 1e-14) / (r - v)));
 
+/** Each object has an orientation o.m: a rotation matrix (column-major, as in three.js) from the object's own
+ *  axes to the room. In its own axes a plate lies in the x–z plane, a rod lies along x and a ring lies in the
+ *  x–z plane, so the formulas below stay simple; points are turned into the object's axes and fields back. */
+const toOwn = (o, x, y, z) => {
+  const m = o.m, dx = x - o.x, dy = y - o.y, dz = z - o.z;
+  return [m[0] * dx + m[1] * dy + m[2] * dz, m[3] * dx + m[4] * dy + m[5] * dz, m[6] * dx + m[7] * dy + m[8] * dz];
+};
+const toRoom = (o, v) => {
+  const m = o.m;
+  return [m[0] * v[0] + m[3] * v[1] + m[6] * v[2], m[1] * v[0] + m[4] * v[1] + m[7] * v[2], m[2] * v[0] + m[5] * v[1] + m[8] * v[2]];
+};
+const pointInRoom = (o, v) => { const w = toRoom(o, v); return [o.x + w[0], o.y + w[1], o.z + w[2]]; };
+
 function prep(o) {
+  o.m = o.m || [1, 0, 0, 0, 1, 0, 0, 0, 1];
   if (o.kind === "ring") {
     o.sub = [];
-    for (let k = 0; k < 40; k++) { const a = (2 * Math.PI * k) / 40; o.sub.push([o.x + SIZE.ring * Math.cos(a), o.y, o.z + SIZE.ring * Math.sin(a)]); }
+    for (let k = 0; k < 40; k++) { const a = (2 * Math.PI * k) / 40; o.sub.push(pointInRoom(o, [SIZE.ring * Math.cos(a), 0, SIZE.ring * Math.sin(a)])); }
   }
   return o;
 }
@@ -51,25 +65,9 @@ function addField(o, x, y, z, E) {
     if (r2 < 1e-10) return false;
     const f = o.q / (r2 * Math.sqrt(r2));
     E[0] += f * dx; E[1] += f * dy; E[2] += f * dz;
-  } else if (o.kind === "plate") {
-    const a = SIZE.plate, eta = o.q / (4 * a * a);
-    const X = x - o.x, Y = z - o.z;
-    let Z = y - o.y; if (Math.abs(Z) < 1e-7) Z = Z < 0 ? -1e-7 : 1e-7;
-    let ex = 0, ey = 0, ez = 0;
-    for (const si of [1, -1]) for (const sj of [1, -1]) {
-      const u = si * a - X, v = sj * a - Y, r = Math.sqrt(u * u + v * v + Z * Z), s = si * sj;
-      ex += s * lnvr(v, r, u * u + Z * Z);
-      ey += s * lnvr(u, r, v * v + Z * Z);
-      ez += s * Math.atan((u * v) / (Z * r));
-    }
-    E[0] += eta * ex; E[2] += eta * ey; E[1] += eta * ez;
-  } else if (o.kind === "rod") {
-    const h = SIZE.rod, lam = o.q / (2 * h);
-    const s = x - o.x, wy = y - o.y, wz = z - o.z, d = Math.max(Math.hypot(wy, wz), 1e-7);
-    const s1 = -h - s, s2 = h - s, r1 = Math.hypot(d, s1), r2 = Math.hypot(d, s2);
-    const ep = (lam / d) * (s2 / r2 - s1 / r1);
-    E[0] += lam * (1 / r2 - 1 / r1); E[1] += (ep * wy) / d; E[2] += (ep * wz) / d;
-  } else {
+    return true;
+  }
+  if (o.kind === "ring") {
     const dq = o.q / o.sub.length;
     for (const p of o.sub) {
       const dx = x - p[0], dy = y - p[1], dz = z - p[2], r2 = dx * dx + dy * dy + dz * dz;
@@ -77,21 +75,45 @@ function addField(o, x, y, z, E) {
       const f = dq / (r2 * Math.sqrt(r2));
       E[0] += f * dx; E[1] += f * dy; E[2] += f * dz;
     }
+    return true;
   }
+  const p = toOwn(o, x, y, z);
+  let e;
+  if (o.kind === "plate") {
+    const a = SIZE.plate, eta = o.q / (4 * a * a), X = p[0], Y = p[2];
+    let Z = p[1]; if (Math.abs(Z) < 1e-7) Z = Z < 0 ? -1e-7 : 1e-7;
+    let ex = 0, ey = 0, ez = 0;
+    for (const si of [1, -1]) for (const sj of [1, -1]) {
+      const u = si * a - X, v = sj * a - Y, r = Math.sqrt(u * u + v * v + Z * Z), s = si * sj;
+      ex += s * lnvr(v, r, u * u + Z * Z);
+      ey += s * lnvr(u, r, v * v + Z * Z);
+      ez += s * Math.atan((u * v) / (Z * r));
+    }
+    e = [eta * ex, eta * ez, eta * ey];
+  } else { // rod
+    const h = SIZE.rod, lam = o.q / (2 * h);
+    const s = p[0], wy = p[1], wz = p[2], d = Math.max(Math.hypot(wy, wz), 1e-7);
+    const s1 = -h - s, s2 = h - s, r1 = Math.hypot(d, s1), r2 = Math.hypot(d, s2);
+    const ep = (lam / d) * (s2 / r2 - s1 / r1);
+    e = [lam * (1 / r2 - 1 / r1), (ep * wy) / d, (ep * wz) / d];
+  }
+  const w = toRoom(o, e);
+  E[0] += w[0]; E[1] += w[1]; E[2] += w[2];
   return true;
 }
 
 /** Distance from a point to an object (for the step size). */
 function dist(o, x, y, z) {
   if (o.kind === "point") return Math.hypot(x - o.x, y - o.y, z - o.z);
-  if (o.kind === "plate") return Math.hypot(Math.max(Math.abs(x - o.x) - SIZE.plate, 0), y - o.y, Math.max(Math.abs(z - o.z) - SIZE.plate, 0));
-  if (o.kind === "rod") return Math.hypot(Math.max(Math.abs(x - o.x) - SIZE.rod, 0), y - o.y, z - o.z);
-  return Math.hypot(Math.hypot(x - o.x, z - o.z) - SIZE.ring, y - o.y);
+  const p = toOwn(o, x, y, z);
+  if (o.kind === "plate") return Math.hypot(Math.max(Math.abs(p[0]) - SIZE.plate, 0), p[1], Math.max(Math.abs(p[2]) - SIZE.plate, 0));
+  if (o.kind === "rod") return Math.hypot(Math.max(Math.abs(p[0]) - SIZE.rod, 0), p[1], p[2]);
+  return Math.hypot(Math.hypot(p[0], p[2]) - SIZE.ring, p[1]);
 }
 /** Is the point close enough to the object for a line to end on it? */
 function near(o, x, y, z) {
   if (o.kind === "point") return dist(o, x, y, z) < 0.016;
-  if (o.kind === "plate") return Math.abs(y - o.y) < 0.005 && Math.abs(x - o.x) < SIZE.plate && Math.abs(z - o.z) < SIZE.plate;
+  if (o.kind === "plate") { const p = toOwn(o, x, y, z); return Math.abs(p[1]) < 0.005 && Math.abs(p[0]) < SIZE.plate && Math.abs(p[2]) < SIZE.plate; }
   return dist(o, x, y, z) < 0.007;
 }
 
@@ -136,28 +158,54 @@ function spread(n, turn) {
   return out;
 }
 
+/** Lines leaving (or reaching) a plate, placed where the field through its surface is strong: the number of lines
+ *  through each small patch is proportional to the field there, on either face. Between the plates of a capacitor
+ *  the field is strong, outside it is weak, so almost all the lines run between the plates. */
+function plateSeeds(o, n, objs) {
+  const G = 14, a = SIZE.plate, cell = (2 * a) / G, e = 0.004, cand = [];
+  let W = 0;
+  for (const side of [1, -1]) {
+    const nrm = toRoom(o, [0, side, 0]);
+    for (let i = 0; i < G; i++) for (let j = 0; j < G; j++) {
+      const own = [-a + (i + 0.5) * cell, side * e, -a + (j + 0.5) * cell], p = pointInRoom(o, own), E = [0, 0, 0];
+      for (const b of objs) addField(b, p[0], p[1], p[2], E);
+      const w = Math.max(0, Math.sign(o.q) * (E[0] * nrm[0] + E[1] * nrm[1] + E[2] * nrm[2]));
+      cand.push({ own, w }); W += w;
+    }
+  }
+  if (W <= 0) cand.forEach((c) => { c.w = 1; W += 1; });
+  const out = [];
+  let k = 0, acc = 0;
+  for (const c of cand) {
+    while (k < n && (k + 0.5) / n * W < acc + c.w) {
+      const f = ((k + 0.5) / n * W - acc) / c.w; // where in this patch: spread lines that share a patch
+      out.push(pointInRoom(o, [c.own[0] + (f - 0.5) * cell * 0.9, c.own[1], c.own[2]]));
+      k++;
+    }
+    acc += c.w;
+  }
+  return out;
+}
+
 /** Where the lines of an object start: spread evenly over it, about n of them. */
-function seeds(o, n, turn) {
-  const out = [], e = 0.004;
-  if (o.kind === "point") for (const u of spread(n, turn)) out.push([o.x + u[0] * SEED, o.y + u[1] * SEED, o.z + u[2] * SEED]);
-  else if (o.kind === "plate") {
-    const g = Math.max(1, Math.round(Math.sqrt(n / 2))), a = SIZE.plate * 0.94;
-    for (let i = 0; i < g; i++) for (let j = 0; j < g; j++) for (const side of [1, -1])
-      out.push([o.x + a * ((2 * i + 1) / g - 1), o.y + side * e, o.z + a * ((2 * j + 1) / g - 1)]);
-  } else if (o.kind === "rod") {
+function seeds(o, n, turn, objs) {
+  const own = [];
+  if (o.kind === "point") return spread(n, turn).map((u) => [o.x + u[0] * SEED, o.y + u[1] * SEED, o.z + u[2] * SEED]);
+  if (o.kind === "plate") return plateSeeds(o, n, objs);
+  if (o.kind === "rod") {
     const rows = Math.max(1, Math.round(n / 6));
     for (let k = 0; k < rows; k++) for (let j = 0; j < 6; j++) {
       const f = (2 * Math.PI * j) / 6 + (k % 2) * (Math.PI / 6);
-      out.push([o.x + SIZE.rod * ((2 * k + 1) / rows - 1), o.y + 0.008 * Math.cos(f), o.z + 0.008 * Math.sin(f)]);
+      own.push([SIZE.rod * ((2 * k + 1) / rows - 1), 0.008 * Math.cos(f), 0.008 * Math.sin(f)]);
     }
   } else {
     const m = Math.max(1, Math.round(n / 4));
     for (let k = 0; k < m; k++) for (let j = 0; j < 4; j++) {
       const a = (2 * Math.PI * k) / m + turn, f = Math.PI / 4 + (j * Math.PI) / 2, R = SIZE.ring + 0.008 * Math.cos(f);
-      out.push([o.x + R * Math.cos(a), o.y + 0.008 * Math.sin(f), o.z + R * Math.sin(a)]);
+      own.push([R * Math.cos(a), 0.008 * Math.sin(f), R * Math.sin(a)]);
     }
   }
-  return out;
+  return own.map((v) => pointInRoom(o, v));
 }
 
 /** All field lines. Lines start on positive objects; a negative object that receives fewer lines than its
@@ -166,7 +214,7 @@ function fieldLines(objs, perQ) {
   const lines = [], arrive = objs.map(() => []);
   objs.forEach((o, i) => {
     if (o.q <= 0) return;
-    for (const p of seeds(o, Math.round(perQ * o.q), i)) {
+    for (const p of seeds(o, Math.round(perQ * o.q), i, objs)) {
       const t = trace(objs, p, 1);
       lines.push({ pts: t.pts, start: true, end: t.end >= 0 });
       if (t.end >= 0) { const n = t.pts.length; arrive[t.end].push([t.pts[n - 3], t.pts[n - 2], t.pts[n - 1]]); }
@@ -174,7 +222,7 @@ function fieldLines(objs, perQ) {
   });
   objs.forEach((o, i) => {
     if (o.q >= 0) return;
-    const ss = seeds(o, Math.round(perQ * -o.q), i);
+    const ss = seeds(o, Math.round(perQ * -o.q), i, objs);
     for (const a of arrive[i]) {
       if (!ss.length) break;
       let best = 0, bd = Infinity;
@@ -234,7 +282,7 @@ export function startSpace3D(root, { rec } = {}) {
       <p class="v3-flash" hidden></p>
     </div>
     <div class="v3-bar">
-      <p class="v3-hint">Slide an object from a tray onto the table: point charges on the right; a charged plate, rod and ring on the left. A new one appears on the tray. Only objects above the table make the field. Let go of an object anywhere else and it falls and is gone, unless you put it back on a tray. Drag an object to move it sideways; drag the grey handle above it to move it up or down. Drag empty space to turn the view; scroll or pinch to zoom.</p>
+      <p class="v3-hint">Slide an object from a tray onto the table: point charges on the right; a charged plate, rod and ring on the left. A new one appears on the tray. Only objects above the table make the field. Let go of an object anywhere else and it falls and is gone, unless you put it back on a tray. Drag an object to move it sideways; drag the grey handle above it to move it up or down; drag the green arrow to turn a plate, rod or ring (sideways to turn it round, up and down to tilt it). Drag empty space to turn the view; scroll or pinch to zoom.</p>
       <div class="v3-tools">
         <label>Lines per <i>q</i> <select class="v3-density"><option value="8">8</option><option value="12" selected>12</option><option value="20">20</option></select></label>
         <button type="button" class="btn ghost v3-view">Reset view</button>
@@ -260,7 +308,7 @@ export function startSpace3D(root, { rec } = {}) {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true; controls.minDistance = 0.3; controls.maxDistance = 2.2;
   controls.maxPolarAngle = Math.PI * 0.47; // never below the floor
-  const resetView = () => { camera.position.set(-0.02, 0.5, 1.05); controls.target.set(-0.02, 0.11, 0.02); controls.update(); };
+  const resetView = () => { camera.position.set(0.2, 0.5, 1.0); controls.target.set(-0.02, 0.11, 0.0); controls.update(); };
   resetView();
 
   // floor of the space: a light square with a grid, so heights and shadows can be read
@@ -277,24 +325,36 @@ export function startSpace3D(root, { rec } = {}) {
   function shape(kind, q, mat) {
     if (kind === "point") {
       const r = radius(q);
-      return { body: new THREE.Mesh(new THREE.SphereGeometry(r, 32, 20), mat), r,
-        proxy: new THREE.SphereGeometry(r + 0.01, 8, 6), foot: new THREE.CircleGeometry(r, 24), lx: r + 0.024 };
+      return { body: new THREE.Mesh(new THREE.SphereGeometry(r, 32, 20), mat), proxy: new THREE.SphereGeometry(r + 0.01, 8, 6) };
     }
     if (kind === "plate") {
       const a = SIZE.plate;
-      return { body: new THREE.Mesh(new THREE.BoxGeometry(2 * a, 0.004, 2 * a), mat), r: 0.002,
-        proxy: new THREE.BoxGeometry(2 * a + 0.01, 0.02, 2 * a + 0.01), foot: new THREE.PlaneGeometry(2 * a, 2 * a), lx: a + 0.026 };
+      return { body: new THREE.Mesh(new THREE.BoxGeometry(2 * a, 0.004, 2 * a), mat), proxy: new THREE.BoxGeometry(2 * a + 0.01, 0.02, 2 * a + 0.01) };
     }
     if (kind === "rod") {
       const h = SIZE.rod, g = new THREE.CylinderGeometry(0.004, 0.004, 2 * h, 14); g.rotateZ(Math.PI / 2);
-      const pg = new THREE.BoxGeometry(2 * h + 0.01, 0.022, 0.022);
-      return { body: new THREE.Mesh(g, mat), r: 0.004, proxy: pg, foot: new THREE.PlaneGeometry(2 * h, 0.008), lx: h + 0.026 };
+      return { body: new THREE.Mesh(g, mat), proxy: new THREE.BoxGeometry(2 * h + 0.01, 0.022, 0.022) };
     }
     const R = SIZE.ring, g = new THREE.TorusGeometry(R, 0.004, 10, 72); g.rotateX(Math.PI / 2);
     const pg = new THREE.TorusGeometry(R, 0.014, 6, 36); pg.rotateX(Math.PI / 2);
-    return { body: new THREE.Mesh(g, mat), r: 0.004, proxy: pg, foot: new THREE.RingGeometry(R - 0.004, R + 0.004, 48), lx: R + 0.026 };
+    return { body: new THREE.Mesh(g, mat), proxy: pg };
   }
   const bodyMat = (q, opacity = 1) => new THREE.MeshStandardMaterial({ color: q > 0 ? COLOR.pos : COLOR.neg, roughness: 0.45, transparent: true, opacity });
+
+  // how an object is turned: first tilted about the front–back axis, then turned about the vertical axis.
+  // Plates start upright, facing left and right, so their field lines run across the view.
+  const DEG = Math.PI / 180, SNAP = 15 * DEG;
+  const START_TILT = { point: 0, plate: 90 * DEG, rod: 0, ring: 0 };
+  const AXIS_Y = new THREE.Vector3(0, 1, 0), AXIS_Z = new THREE.Vector3(0, 0, 1);
+  const orient = (yaw, tilt) => new THREE.Quaternion().setFromAxisAngle(AXIS_Y, yaw).multiply(new THREE.Quaternion().setFromAxisAngle(AXIS_Z, tilt));
+  /** How far the turned object reaches sideways (ex) and up and down (ey) from its centre. */
+  function reach(geom, quat) {
+    if (!geom.boundingBox) geom.computeBoundingBox();
+    const h = geom.boundingBox.getSize(new THREE.Vector3()).multiplyScalar(0.5);
+    const e = new THREE.Matrix4().makeRotationFromQuaternion(quat).elements;
+    return { ex: Math.abs(e[0]) * h.x + Math.abs(e[4]) * h.y + Math.abs(e[8]) * h.z,
+             ey: Math.abs(e[1]) * h.x + Math.abs(e[5]) * h.y + Math.abs(e[9]) * h.z };
+  }
 
   // the trays, at the height the objects are used: taking an object off a tray hatches a new one in its place
   const trayMat = new THREE.MeshStandardMaterial({ color: 0xe2dccb, roughness: 0.8 });
@@ -307,12 +367,14 @@ export function startSpace3D(root, { rec } = {}) {
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, TOP - 0.006, 8), postMat); post.position.set(x, (TOP - 0.006) / 2, z);
     const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.003, 20), postMat); foot.position.set(x, 0.0015, z);
     const sh = shape(kind, q, bodyMat(q, kind === "plate" ? 0.85 : 1));
-    const m = sh.body; m.position.set(x, TOP + sh.r, z);
+    const quat = orient(0, START_TILT[kind]), { ey } = reach(sh.body.geometry, quat);
+    const m = sh.body; m.position.set(x, TOP + ey, z); m.quaternion.copy(quat);
     const lb = label(partsOf(kind, q), 0.018);
     // labels sit on the outer side of each column, away from the table
-    lb.position.set(col === RIGHT ? x + col.half + 0.022 : x - col.half - 0.022, TOP + sh.r + 0.004, z);
+    if (col === RIGHT) lb.position.set(x + col.half + 0.022, TOP + ey + 0.004, z);
+    else lb.position.set(x, TOP + 2 * ey + 0.018, z); // above the object, so an upright plate cannot hide it
     const t = { kind, q, x, z, half: col.half, mesh: m, grow: 1 };
-    const pr = new THREE.Mesh(sh.proxy, proxyMat); pr.position.copy(m.position); pr.userData = { kind: "token", t };
+    const pr = new THREE.Mesh(sh.proxy, proxyMat); pr.position.copy(m.position); pr.quaternion.copy(quat); pr.userData = { kind: "token", t };
     world.add(dish, post, foot, m, lb, pr); pickables.push(pr); trays.push(t);
   });
   const clearBtn = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.012, 0.04), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }));
@@ -326,36 +388,65 @@ export function startSpace3D(root, { rec } = {}) {
   const arrows = new THREE.InstancedMesh(new THREE.ConeGeometry(0.0045, 0.014, 10), arrowMat, 800);
   arrows.count = 0; world.add(arrows);
 
-  // charges in the space
+  // objects in the space
   const charges = [];
   let perQ = 12, dirty = true;
   const dropMat = new THREE.LineDashedMaterial({ color: 0x8a8f9c, dashSize: 0.008, gapSize: 0.006 });
-  const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false });
+  const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide });
   const handleMat = new THREE.MeshStandardMaterial({ color: 0x9aa0ad, roughness: 0.5 });
+  const turnMat = new THREE.MeshStandardMaterial({ color: 0x0d6b5f, roughness: 0.5 });
+  /** The turn handle: a green curved arrow. */
+  function turnHandle() {
+    const k = new THREE.Group();
+    const arc = new THREE.Mesh(new THREE.TorusGeometry(0.009, 0.0022, 8, 28, 1.5 * Math.PI), turnMat);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.0045, 0.008, 12), turnMat);
+    tip.position.set(0.009, -0.002, 0); tip.rotation.z = Math.PI; k.add(arc, tip);
+    return k;
+  }
 
   function addObject(kind, q, x, y, z) {
-    const g = new THREE.Group(), mat = bodyMat(q, kind === "plate" ? 0.85 : 1), sh = shape(kind, q, mat);
-    g.add(sh.body);
-    const lb = label(partsOf(kind, q), 0.022); lb.position.set(sh.lx, 0, 0); g.add(lb);
-    const handle = new THREE.Mesh(new THREE.OctahedronGeometry(0.008), handleMat);
-    handle.scale.set(0.8, 1.5, 0.8); handle.position.y = sh.r + 0.022; g.add(handle);
+    const g = new THREE.Group(), spin = new THREE.Group();
+    const solid = kind === "plate" ? 0.85 : 1, mat = bodyMat(q, solid), sh = shape(kind, q, mat);
+    spin.add(sh.body); g.add(spin);
+    const lb = label(partsOf(kind, q), 0.022); g.add(lb);
+    const handle = new THREE.Mesh(new THREE.OctahedronGeometry(0.008), handleMat); handle.scale.set(0.8, 1.5, 0.8); g.add(handle);
     world.add(g);
     const drop = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), dropMat);
-    const shadow = new THREE.Mesh(sh.foot, shadowMat); shadow.rotation.x = -Math.PI / 2;
+    const shadow = new THREE.Mesh(sh.body.geometry, shadowMat); shadow.matrixAutoUpdate = false;
     world.add(drop, shadow);
-    const c = { kind, q, x, y, z, r: sh.r, g, mat, drop, shadow, proxies: [], out: false, solid: kind === "plate" ? 0.85 : 1 };
-    const pb = new THREE.Mesh(sh.proxy, proxyMat); pb.userData = { kind: "charge", c };
-    const ph = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 6), proxyMat); ph.position.y = sh.r + 0.022; ph.userData = { kind: "handle", c };
-    g.add(pb, ph); c.proxies = [pb, ph]; pickables.push(pb, ph);
-    charges.push(c); place(c); setOut(c);
+    const c = { kind, q, x, y, z, yaw: 0, tilt: START_TILT[kind], quat: orient(0, START_TILT[kind]), ey: 0,
+      g, spin, geom: sh.body.geometry, lb, handle, mat, drop, shadow, proxies: [], out: false, solid };
+    const pb = new THREE.Mesh(sh.proxy, proxyMat); pb.userData = { kind: "charge", c }; spin.add(pb);
+    const ph = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 6), proxyMat); ph.userData = { kind: "handle", c }; g.add(ph);
+    c.proxies = [pb, ph]; c.hProxy = ph;
+    if (kind !== "point") {  // only the charge distributions can be turned: a point charge looks the same every way round
+      c.knob = turnHandle(); g.add(c.knob);
+      const pk = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 6), proxyMat); pk.userData = { kind: "turn", c }; g.add(pk);
+      c.kProxy = pk; c.proxies.push(pk);
+    }
+    pickables.push(...c.proxies);
+    charges.push(c); turned(c); setOut(c);
     return c;
   }
+  /** After the object is turned: move its label and handles to clear it, and redraw. */
+  function turned(c) {
+    c.spin.quaternion.copy(c.quat);
+    const { ex, ey } = reach(c.geom, c.quat);
+    c.ey = ey;
+    c.lb.position.set(ex + 0.026, 0, 0);
+    c.handle.position.set(0, ey + 0.022, 0); c.hProxy.position.copy(c.handle.position);
+    if (c.knob) { c.knob.position.set(0.03, ey + 0.022, 0); c.kProxy.position.copy(c.knob.position); }
+    place(c);
+  }
+  const shadowM = new THREE.Matrix4(), flat = new THREE.Matrix4().makeScale(1, 0.0001, 1), turnM = new THREE.Matrix4();
   function place(c) {
     c.g.position.set(c.x, c.y, c.z);
     const a = c.drop.geometry.attributes.position;
-    a.setXYZ(0, c.x, c.y - c.r, c.z); a.setXYZ(1, c.x, 0.001, c.z); a.needsUpdate = true;
+    a.setXYZ(0, c.x, c.y - c.ey, c.z); a.setXYZ(1, c.x, 0.001, c.z); a.needsUpdate = true;
     c.drop.computeLineDistances();
-    c.shadow.position.set(c.x, 0.0012, c.z);
+    // the shadow is the object squashed flat onto the floor, so it shows how the object is turned
+    shadowM.makeTranslation(c.x, 0.0012, c.z).multiply(flat).multiply(turnM.makeRotationFromQuaternion(c.quat));
+    c.shadow.matrix.copy(shadowM); c.shadow.matrixWorldNeedsUpdate = true;
     if (!c.out) dirty = true;
   }
   /** Only a charge above the table makes the field; anywhere else it is shown faded and left out. */
@@ -374,14 +465,14 @@ export function startSpace3D(root, { rec } = {}) {
   START.forEach((s) => addObject(s.kind, s.q, s.x, s.y, s.z));
   // for checking the field lines: /during/?debug3d exposes a way to place objects from the console
   if (new URLSearchParams(location.search).has("debug3d"))
-    window.space3d = { add: (kind, q, x, y, z) => addObject(kind, q, x, y, z), clear: () => [...charges].forEach(removeCharge), camera, controls };
+    window.space3d = { add: (kind, q, x, y, z, tilt, yaw) => { const c = addObject(kind, q, x, y, z); if (tilt !== undefined) { c.tilt = tilt * DEG; c.yaw = (yaw || 0) * DEG; c.quat = orient(c.yaw, c.tilt); turned(c); } return c; }, clear: () => [...charges].forEach(removeCharge), camera, controls };
 
   const up = new THREE.Vector3(0, 1, 0), tmpQ = new THREE.Quaternion(), tmpM = new THREE.Matrix4();
   const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1);
 
   function rebuild() {
     dirty = false;
-    const ch = charges.filter((c) => !c.out && !c.falling).map((c) => prep({ kind: c.kind, q: c.q, x: c.x, y: c.y, z: c.z }));
+    const ch = charges.filter((c) => !c.out && !c.falling).map((c) => prep({ kind: c.kind, q: c.q, x: c.x, y: c.y, z: c.z, m: new THREE.Matrix3().setFromMatrix4(turnM.makeRotationFromQuaternion(c.quat)).elements.slice() }));
     // while something is being dragged, half the lines keep the view smooth (a headset is slower than a computer);
     // the full set is drawn as soon as it is let go
     const moving = sDrag || ctrls.some((c) => c.userData.drag);
@@ -432,6 +523,8 @@ export function startSpace3D(root, { rec } = {}) {
     }
     const c = u.c;
     if (c.falling) return null;
+    if (mode === "screen" && u.kind === "turn") return { c, mode: "turn", yaw0: c.yaw, tilt0: c.tilt };
+    if (mode === "xr" && c.kind !== "point") return { c, mode, h: c.y, dist: hit.distance, rot: true }; // in a headset it turns with the hand
     if (mode === "screen" && u.kind === "handle") {
       const n = new THREE.Vector3().subVectors(camera.position, c.g.position).setY(0).normalize();
       return { c, mode: "lift", plane: new THREE.Plane().setFromNormalAndCoplanarPoint(n, c.g.position.clone()) };
@@ -446,24 +539,34 @@ export function startSpace3D(root, { rec } = {}) {
     if (d.mode === "lift") {
       const p = new THREE.Ray(o, dir).intersectPlane(d.plane, new THREE.Vector3());
       if (!p) return;
-      c.y = clampTo(p.y, Y0, Y1);
+      c.y = clampTo(p.y, Math.max(Y0, c.ey + 0.005), Y1);
     } else if (d.mode === "screen") {                  // slide at the charge's own height
       const t = (d.h - o.y) / dir.y; if (!(t > 0)) return;
       const p = o.clone().addScaledVector(dir, t);
       c.x = clampTo(p.x, -REACH, REACH); c.z = clampTo(p.z, -REACH, REACH);
     } else {                                           // controller or hand: same distance along the ray, so free 3D
       const p = o.clone().addScaledVector(dir, d.dist);
-      c.x = clampTo(p.x, -REACH, REACH); c.y = clampTo(p.y, Y0, Y1); c.z = clampTo(p.z, -REACH, REACH);
+      c.x = clampTo(p.x, -REACH, REACH); c.y = clampTo(p.y, Math.max(Y0, c.ey + 0.005), Y1); c.z = clampTo(p.z, -REACH, REACH);
     }
     place(c); setOut(c);
+  }
+  /** Turn handle on the screen: sideways turns the object about the vertical, up and down tilts it; both in 15° steps. */
+  function turnBy(d, e) {
+    const c = d.c, snap = (a) => Math.round(a / SNAP) * SNAP;
+    c.yaw = snap(d.yaw0 + (e.clientX - d.px) * 0.012);
+    c.tilt = snap(d.tilt0 - (e.clientY - d.py) * 0.012);
+    c.quat = orient(c.yaw, c.tilt);
+    turned(c);
+    if (c.y - c.ey < 0.005) { c.y = c.ey + 0.005; place(c); } // never through the table
   }
   /** Let go: above the table the charge stays; back on a tray it is put away; anywhere else it falls and is gone. */
   function drop(d) {
     const c = d.c;
     const at = [c.x, c.y, c.z].map((v) => +v.toFixed(3));
     dirty = true;
+    if (d.mode === "turn") { log("turn", { kind: c.kind, turn: Math.round(c.yaw / DEG), tilt: Math.round(c.tilt / DEG) }); return; }
     if (!c.out) { log(d.isNew ? "add" : "move", { kind: c.kind, q: c.q, at }); return; }
-    const onTray = trays.some((t) => Math.abs(c.x - t.x) < t.half + 0.012 && Math.abs(c.z - t.z) < t.half + 0.012 && Math.abs(c.y - TOP) < 0.06);
+    const onTray = trays.some((t) => Math.abs(c.x - t.x) < t.half + 0.012 && Math.abs(c.z - t.z) < t.half + 0.012 && Math.abs(c.y - c.ey - TOP) < 0.06);
     if (onTray) removeCharge(c);
     else { c.falling = true; c.vy = 0; }
     if (!d.isNew) log(onTray ? "put back" : "drop off table", { kind: c.kind, q: c.q });
@@ -485,11 +588,13 @@ export function startSpace3D(root, { rec } = {}) {
     if (!hit) return;                         // empty space: the view turns
     e.stopImmediatePropagation();             // keep the view still while dragging a charge
     const d = grab(hit, "screen");
-    if (d) { sDrag = d; renderer.domElement.setPointerCapture(e.pointerId); follow(d, ...toLocal(ray.ray.origin, ray.ray.direction)); }
+    if (!d) return;
+    sDrag = d; renderer.domElement.setPointerCapture(e.pointerId);
+    if (d.mode === "turn") { d.px = e.clientX; d.py = e.clientY; } else follow(d, ...toLocal(ray.ray.origin, ray.ray.direction));
   }, { capture: true });
   renderer.domElement.addEventListener("pointermove", (e) => {
     screenRay(e);
-    if (sDrag) { follow(sDrag, ...toLocal(ray.ray.origin, ray.ray.direction)); return; }
+    if (sDrag) { if (sDrag.mode === "turn") turnBy(sDrag, e); else follow(sDrag, ...toLocal(ray.ray.origin, ray.ray.direction)); return; }
     renderer.domElement.style.cursor = ray.intersectObjects(pickables, false)[0] ? "grab" : "";
   });
   const endScreen = () => { if (sDrag) { drop(sDrag); sDrag = null; } };
@@ -508,6 +613,8 @@ export function startSpace3D(root, { rec } = {}) {
       ctrlRay(c);
       const hit = ray.intersectObjects(pickables, false)[0];
       if (hit) c.userData.drag = grab(hit, "xr");
+      const d = c.userData.drag;
+      if (d && d.rot) { d.qc0 = c.getWorldQuaternion(new THREE.Quaternion()).invert(); d.q0 = d.c.quat.clone(); }
     });
     c.addEventListener("selectend", () => { if (c.userData.drag) { drop(c.userData.drag); c.userData.drag = null; } });
     scene.add(c);
@@ -533,7 +640,7 @@ export function startSpace3D(root, { rec } = {}) {
       no: "<b>AR</b> needs a headset browser with passthrough (for example Meta Quest) or Chrome on an Android phone or tablet. This browser cannot open it, so the view below stays in the browser. Safari on iPad and iPhone does not support AR on web pages yet.",
     },
     vr: {
-      yes: "<b>VR</b> puts this space in front of you in the headset. Point at a charge and pinch or press the trigger to take it; it moves freely in 3D with your hand.",
+      yes: "<b>VR</b> puts this space in front of you in the headset. Point at an object and pinch or press the trigger to take it; it moves and turns with your hand.",
       no: "<b>VR</b> needs the browser of a VR headset (for example Meta Quest or Apple Vision Pro). This browser cannot open it, so the view below stays in the browser.",
     },
   };
@@ -617,7 +724,11 @@ export function startSpace3D(root, { rec } = {}) {
       if (c.y < -0.6) removeCharge(c);
     }
     for (const t of trays) if (t.grow < 1) { t.grow = Math.min(1, t.grow + dt / 0.35); t.mesh.scale.setScalar(Math.max(0.01, t.grow)); }
-    if (xr) ctrls.forEach((c) => { if (c.userData.drag) { ctrlRay(c); follow(c.userData.drag, ...toLocal(ray.ray.origin, ray.ray.direction)); } });
+    if (xr) ctrls.forEach((c) => {
+      const d = c.userData.drag; if (!d) return;
+      if (d.rot) { d.c.quat = c.getWorldQuaternion(new THREE.Quaternion()).multiply(d.qc0).multiply(d.q0); turned(d.c); }
+      ctrlRay(c); follow(d, ...toLocal(ray.ray.origin, ray.ray.direction));
+    });
     if (dirty) rebuild();
     if (!xr) controls.update();
     renderer.render(scene, camera);
