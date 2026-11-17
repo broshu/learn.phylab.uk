@@ -56,7 +56,6 @@ export function rodGravity() {
       <h3 class="part">Part A · One small piece, then two</h3>
       <p>The highlighted piece of the rod pulls on the ball. Drag from the ball to draw that pull.</p>
       <div class="fieldbox" style="max-width: calc((100svh - 260px) * 1.286)"><canvas data-c="a"></canvas></div>
-      <p style="margin-top:10px"><button class="btn small ghost" data-a="lock" disabled>Keep this arrow and go on</button></p>
       <div data-s="pair" hidden>
         <p>Now two pieces, placed symmetrically, with the pull of each one on the ball. Drag from the ball to draw the sum of the two pulls.</p>
         <div class="fieldbox" style="max-width: calc((100svh - 260px) * 1.286)"><canvas data-c="b"></canvas></div>
@@ -84,7 +83,8 @@ export function rodGravity() {
 `;
 
     // Part A, first arrow
-    boardA = new Board(q('[data-c="a"]'), { w: 9, h: 7, grid: false, onChange: () => { q('[data-a="lock"]').disabled = lockedA || len(sub([tipA.x, tipA.y], ball)) < 0.4; onChange(); } });
+    // letting go of a real arrow keeps it and shows the next picture (a tiny drag, e.g. a stray click, is ignored)
+    boardA = new Board(q('[data-c="a"]'), { w: 9, h: 7, grid: false, onChange: (b, released) => { if (released && !lockedA && len(sub([tipA.x, tipA.y], ball)) >= 0.4) keepA(); onChange(); } });
     tipA = boardA.addHandle({ x: ball[0], y: ball[1] });
     boardA.paint = (b, ctx) => {
       drawRod(b, ctx, [pieceY]);
@@ -94,11 +94,10 @@ export function rodGravity() {
       if (len(sub([tipA.x, tipA.y], ball)) > 0.1) arrow(ctx, ...b.px(...ball), ...b.px(tipA.x, tipA.y), MINE, 3.5);
     };
     boardA.draw();
-    q('[data-a="lock"]').addEventListener("click", () => {
+    function keepA() {
       lockedA = true; boardA.locked = true; boardA.draw();
-      q('[data-a="lock"]').disabled = true; q('[data-a="lock"]').textContent = "Arrow kept";
-      q('[data-s="pair"]').hidden = false; boardB.resize(); onChange();
-    });
+      q('[data-s="pair"]').hidden = false; boardB.resize();
+    }
 
     // Part A, the symmetric pair
     boardB = new Board(q('[data-c="b"]'), { w: 9, h: 7, grid: false, onChange });
@@ -239,7 +238,6 @@ export function rodGravity() {
     lock() {
       locked = true; lockedA = true;
       for (const b of [boardA, boardB, boardC]) { b.locked = true; b.draw(); }
-      q('[data-a="lock"]').disabled = true;
       el.querySelectorAll(".tile").forEach((t) => (t.disabled = true));
     },
     /** Show what was right and wrong, part by part, then open the simulation. */
