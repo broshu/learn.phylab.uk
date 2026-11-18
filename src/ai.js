@@ -42,7 +42,8 @@ const BRIEF = `You help a university physics lecturer before a first-year class 
 - First sentence: how the class did overall, in plain words.
 - Then the one or two weaknesses that matter most for today's class (electric field lines and the field of a continuous charge, such as a thin rod), each with what the students most often did wrong and one concrete thing to do about it in the first minutes of class.
 - No praise, no general advice, nothing that is not supported by the numbers. Refer to questions by their titles.
-- At most 90 words, plain prose, no lists. ${MATH}`;
+- Do not write any formula or equation: name the idea in words (for example "the integral for the pull of one small piece"). You do not see the questions themselves, only their titles and results, so never guess at their content.
+- At most 90 words, plain prose, no lists, no Markdown.`;
 
 // ---------- helpers ----------
 const clip = (s, n) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
