@@ -2,7 +2,7 @@
 // The check-in is drawn by /assets/teacher-checkin.js. The in-class and after-class panels come from the same modules
 // as on the student pages; their student side is built out of sight, because the teacher cards are worked out from it.
 // Each part loads only when its tab is first opened (the in-class part brings three.js with it).
-import { QUESTIONS, loadSample, mine, clearMine, renderSummary, renderQuestion, STORE } from "/assets/teacher-checkin.js";
+import { QUESTIONS, loadSample, mine, clearMine, renderSummary, renderQuestion, renderBrief, STORE } from "/assets/teacher-checkin.js";
 import { openRecord } from "/assets/record.js";
 
 const $ = (id) => document.getElementById(id);
@@ -22,6 +22,7 @@ function renderCheckin() {
 $("clearMine").addEventListener("click", () => { clearMine(); renderCheckin(); });
 window.addEventListener("storage", (e) => { if (e.key === STORE || e.key === null) renderCheckin(); });
 renderCheckin();
+renderBrief($("tBrief"));
 
 // ---------- in class and after class ----------
 const fail = (box, err) => { box.innerHTML = `<p class="none">This panel could not load (${err.message}). Reload the page to try again.</p>`; };

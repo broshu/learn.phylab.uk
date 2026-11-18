@@ -101,7 +101,6 @@
   <ol id="stepper">
     <li><button type="button" data-go="check"><b>1</b><span>Check-in</span></button></li>
     <li><button type="button" data-go="learn"><b>2</b><span>Learn</span></button></li>
-    <li><button type="button" data-go="predict"><b>3</b><span>Predict</span></button></li>
   </ol></div>
     <div class="tcol"><span class="role t">Teacher back end</span><span class="txt">hidden from students</span><a href="/teacher/" target="_blank" rel="opener">full page</a></div>
   </div>
@@ -116,7 +115,7 @@
       <h1>Check-in</h1>
       <p class="intro">Five questions on what this lesson builds on, from quick to demanding. You answer by dragging. They do not count toward any grade, and you can submit without answering all of them. When you submit, the next step goes through whatever was not right.</p>
     </div>
-    <aside class="tcol"><div class="card tcard" id="tSumCheck"></div></aside>
+    <aside class="tcol"><div class="card tcard" id="tSumCheck"></div><div class="card tcard" id="tBrief"></div></aside>
   </div>
   <div id="items"></div>
   <div class="row">
@@ -157,26 +156,11 @@
         <button class="btn ghost" id="learnBack">Back to the check-in</button>
         <span>
           <button class="btn ghost" id="learnAgain">Check-in again, new numbers</button>
-          <button class="btn" id="learnNext">Continue</button>
+          <a class="btn" id="learnNext" href="/during/">Continue to in class</a>
         </span>
       </div>
     </div>
     <aside class="tcol"></aside>
-  </div>
-</section>
-
-<!-- 3 · PREDICT (not decided yet) -->
-<section class="step" id="s-predict">
-  <div class="row">
-    <div class="scol">
-      <h1>Predict</h1>
-      <div class="card placeholder" style="margin-top:16px">
-        <p style="margin:0"><strong>This step is still being designed.</strong></p>
-        <p class="muted small" style="margin:6px 0 0">It will be a question to think about before class.</p>
-      </div>
-      <div class="nav"><button class="btn ghost" id="predictBack">Back</button><a class="btn" href="/">Back to the lesson</a></div>
-    </div>
-    <aside class="tcol tend"><div class="card off">Nothing to show yet for this step.</div><button type="button" class="btn reset-demo" title="Clear the answers saved in this browser and start again">Reset demo</button></aside>
   </div>
 </section>
 

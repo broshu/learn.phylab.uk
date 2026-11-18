@@ -4,6 +4,7 @@
 import { Board, arrow, symbol, INK, SOFT, MINE, POS, NEG } from "/assets/board.js";
 import { TEACH, TEACH_PARTS, judgeTeach, judgeRing, fieldAt, partsAt } from "/after/model.js";
 import { water, shrimp, bill, reading, label, fmt, M, MD, fr, k4, r3, inv, mum, OK, BAD } from "/after/scene.js";
+import { askMother } from "/assets/ask.js";
 
 const PTS = ["A", "B", "C"];
 const UNIT = 1.5 / Math.hypot(...fieldAt(TEACH.shrimp, ...TEACH.A)); // board units per µV/cm: the net field at A is 1.5 long
@@ -38,6 +39,7 @@ export function startTeach({ student, teacher, rec, cls }) {
         <button class="btn" id="tCheck">Check</button>
       </div>
       <div id="tFb" aria-live="polite"></div>
+      <div id="tAsk"></div>
     </div>
     <div class="card q">
       <p class="stem"><span class="n">2</span>Now feel it with your own bill. Slide your bill around the dashed circle, always the same distance from the shrimp, and watch the reading. Stop where the signal is strongest, then check.</p>
@@ -158,6 +160,14 @@ export function startTeach({ student, teacher, rec, cls }) {
   }
   if (result) showA();
   if (ring.tries) showR(ring.done);
+
+  // ---------- asking mother (AI): about the arrows as they are now and how the rules marked them ----------
+  askMother($("tAsk"), {
+    where: "teach",
+    prompt: "Ask mother a question about your arrows",
+    state: () => ({ arrows: v, result: result && result.answered ? result.parts : null, ring: { done: ring.done, tries: ring.tries }, helped }),
+    onEvent: (name, data) => rec.event(name, data),
+  });
 
   // ---------- teacher ----------
   teacher.innerHTML = `

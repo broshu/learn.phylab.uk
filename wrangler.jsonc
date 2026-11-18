@@ -13,10 +13,15 @@
   "routes": [
     { "pattern": "learn.phylab.uk", "custom_domain": true }
   ],
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  // AI: Llama 3.3 70B on Workers AI, called by src/ai.js (the mother platypus, and the lecturer's note in the teacher view)
+  "ai": { "binding": "AI" },
+  // at most 12 AI calls a minute from one visitor
+  "ratelimits": [
+    { "name": "AI_LIMIT", "namespace_id": "4101", "simple": { "limit": 12, "period": 60 } }
+  ]
   // Added later, when each part is built:
   //   "d1_databases"     – students, classes, submissions, event logs (teacher view reads these)
   //   "r2_buckets"       – drawings and other uploaded files
   //   "durable_objects"  – live in-class room: real-time accuracy, peer pairing, VR group counts
-  //   secrets (wrangler secret put): DEEPSEEK_API_KEY_CHECK, DEEPSEEK_API_KEY_TUTOR
 }

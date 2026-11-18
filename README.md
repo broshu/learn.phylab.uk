@@ -27,4 +27,4 @@ One Cloudflare Worker (`learn-phylab-uk`), deployed automatically by Workers Bui
 - D1 — students, classes, submissions, event logs
 - R2 — drawings and uploaded files
 - Durable Objects — live in-class room (real-time accuracy, pairing, group counts)
-- Secrets — one DeepSeek key per feature, named after the site (e.g. `learn.phylab.uk-check`)
+- AI — Workers AI binding `AI` (Llama 3.3 70B, no API key), used by `src/ai.js` for `/api/mother` and `/api/brief`; rate limit binding `AI_LIMIT`. No DeepSeek: the site is for an Australian study. Marking is always done by fixed rules in the browser; the model only talks about results those rules gave

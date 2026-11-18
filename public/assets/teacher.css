@@ -78,3 +78,7 @@ h4.tsub { font: 600 0.92rem var(--sans); margin: 16px 0 6px; }
 .dist.wide { height: 112px; gap: 4px; }
 .dist.wide div { font-size: 0.7rem; line-height: 1.2; }
 .dist.wide div.me i { outline: 2.5px solid #d98200; outline-offset: 1px; }
+
+/* the AI note for the lecturer */
+.brief { background: #f3f6f9; border-left: 4px solid #4a6fa5; padding: 8px 12px; margin: 0 0 10px; border-radius: 4px; }
+.brief p { margin: 0 0 6px; } .brief p:last-child { margin: 0; }

@@ -14,6 +14,7 @@ import {
   newTruth, judgeHunt, judgeDistance, judgeRange, fieldAt, ends, wrap,
 } from "/after/model.js";
 import { water, shrimp, bill, onBill, grip, reading, label, fmt, num, M, MD, fr, k4, r3, inv, mum, OK, BAD } from "/after/scene.js";
+import { askMother } from "/assets/ask.js";
 
 const { W, H, silt: Z, inset, keepOut } = HUNT;
 const { H: SH, y: Y, start: X0, back: BACK, RING } = DIST; // the one-dimensional view: W wide, SH high, axis at height Y
@@ -349,7 +350,15 @@ export function startHunt({ student, teacher, rec, cls }) {
     } else {
       $("hFb").innerHTML = `<div class="card burrow" style="margin-top:12px">${mum(`<h3>The shrimp got away</h3>${why(e)}
         <p class="muted small">The picture shows where it was, with its real field in grey. Compare the grey lines with your readings.</p>
+        <div id="hAsk"></div>
         <button class="btn" id="hAgain">Go out again</button>`, "Back at the burrow · mother")}</div>`;
+      // the young one can ask mother (AI) about this mistake before going out again
+      askMother($("hAsk"), {
+        where: "hunt",
+        prompt: "Ask mother about what went wrong",
+        state: () => ({ end: st.end, r: st.r, readings: st.dpins, hunts: st.log.hunts }),
+        onEvent: (name, data) => rec.event(name, data),
+      });
     }
     $("hAgain").addEventListener("click", again);
   }

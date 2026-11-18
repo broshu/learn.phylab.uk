@@ -78,3 +78,16 @@ footer.site { margin: 56px 0 32px; padding-top: 18px; border-top: 1px solid var(
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
 .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 0.95rem; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 8px; background: #fff; cursor: pointer; user-select: none; }
 .toggle input { accent-color: var(--accent); width: 17px; height: 17px; }
+
+/* asking the AI (assets/ask.js) */
+.ask { margin-top: 14px; }
+.ask-thread > * { margin-top: 10px; }
+.ask-q { margin-left: auto; max-width: 85%; width: fit-content; background: #ece9df; border-radius: 10px; padding: 7px 12px; font-size: 0.95rem; }
+.ask-a p { margin: 0 0 6px; } .ask-a p:last-child { margin-bottom: 0; }
+.ask-a math[display="block"] { margin: 6px 0; }
+.ask-form { display: flex; gap: 8px; margin-top: 10px; }
+.ask-form input { flex: 1; min-width: 0; font: inherit; font-size: 0.95rem; padding: 7px 10px; border: 1px solid var(--rule); border-radius: 8px; background: #fff; }
+.ask-form input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.ask-note { color: var(--ink-soft); font-size: 0.78rem; margin: 6px 0 0; }
+.mum.ask-a { border-left: 4px solid #7a5a3c; padding-left: 14px; }
+.mum.ask-a .tag { color: #7a5a3c; display: block; margin-bottom: 4px; font-size: 0.85rem; }

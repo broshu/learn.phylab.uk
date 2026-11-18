@@ -305,3 +305,38 @@ export function renderQuestion(box, id, { compact = false, live = null } = {}) {
        <div class="qbody"><div><div class="plot"><canvas></canvas></div><p class="how">${q.how}</p></div>${table}</div>`;
   plot(box.querySelector("canvas"), q.view, q.paint(answers.filter((a) => a.r.norm))); // unanswered questions have nothing to draw
 }
+
+// ---------- a note for the lecturer, written by the AI from the class's results (src/ai.js, /api/brief) ----------
+/** The class's results as numbers: what is sent to the model (no names, no single answers). */
+export function classDigest() {
+  const all = everyone(), n = all.length;
+  const scores = all.map((s) => QUESTIONS.filter((q) => resultOf(s, q.id).ok).length);
+  return {
+    n, of: QUESTIONS.length, mean: scores.reduce((a, b) => a + b, 0) / n,
+    questions: QUESTIONS.map((q) => {
+      const errors = {};
+      all.forEach((s) => { const r = resultOf(s, q.id); if (!r.ok) errors[r.error] = (errors[r.error] || 0) + 1; });
+      return { title: q.title, pct: (100 * rate(all, q.id)), wrong: Object.entries(errors).sort((a, b) => b[1] - a[1]).slice(0, 4) };
+    }),
+  };
+}
+/** A card with one button; the note appears under it. The same results always give the same note (cached on the server). */
+export function renderBrief(box) {
+  box.innerHTML = `
+    <div class="qhead"><h3>Before the lecture</h3><span class="pct"><small>AI note</small></span></div>
+    <p class="task">A short note for the lecturer, written by an AI language model from the class's check-in results above. The marking itself is done by fixed rules.</p>
+    <div class="brief-out"></div>
+    <button class="btn small" type="button">Write the note</button>`;
+  const out = box.querySelector(".brief-out"), btn = box.querySelector("button");
+  btn.addEventListener("click", async () => {
+    btn.disabled = true; out.innerHTML = `<p class="muted">Writing&hellip;</p>`;
+    try {
+      const { post, richText } = await import("/assets/ask.js");
+      out.innerHTML = `<div class="brief">${await richText(await post("/api/brief", classDigest()))}</div>`;
+      btn.textContent = "Write it again";
+    } catch (err) {
+      out.innerHTML = `<p class="muted">${String(err.message).replace(/</g, "&lt;")}</p>`;
+    }
+    btn.disabled = false;
+  });
+}

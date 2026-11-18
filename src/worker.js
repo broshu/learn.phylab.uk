@@ -1,7 +1,9 @@
 // learn.phylab.uk Worker
-// Static pages come from public/. Only /api/* runs through this code.
+// Static pages come from public/. Only /, /api/* and old addresses run through this code.
+import { handleAI } from "./ai.js";
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     // old address of the in-class part
@@ -17,6 +19,10 @@ export default {
 
     if (url.pathname === "/api/health") {
       return Response.json({ ok: true, site: "learn.phylab.uk", time: new Date().toISOString() });
+    }
+
+    if (url.pathname === "/api/mother" || url.pathname === "/api/brief") {
+      return handleAI(request, env, ctx, url.pathname);
     }
 
     if (url.pathname.startsWith("/api/")) {
